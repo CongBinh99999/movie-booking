@@ -10,8 +10,8 @@ setting = get_setting()
 redis_pool = redis.ConnectionPool.from_url(setting.REDIS_URL)
 
 
-async def get_redis() -> AsyncGenerator[redis.Redis, None]: 
-    async with redis.Redis(connection_pool=redis_pool) as client: 
+async def get_redis() -> AsyncGenerator[redis.Redis, None]:
+    async with redis.Redis(connection_pool=redis_pool) as client:
         yield client
 
 
@@ -22,6 +22,3 @@ async def get_redis_client() -> AsyncGenerator[redis.Redis, None]:
         yield client
     finally:
         await client.aclose()
-
-
-

@@ -1,0 +1,1 @@
+"""Movies schemas package."""
