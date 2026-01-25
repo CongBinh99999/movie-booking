@@ -7,4 +7,4 @@ import redis.asyncio as redis
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
-RedisClient = Annotated[Annotated, Depends(get_redis)]
+RedisClient = Annotated[redis.Redis, Depends(get_redis)]

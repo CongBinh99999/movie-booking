@@ -17,7 +17,7 @@ class RoleType(str, Enum):
 
 
 class Users(SQLModel, table=True):
-    __tablename__ = "users" #type: ignore[assigment]
+    __tablename__ = "users"  # type: ignore[assigment]
     __table_args__ = (
         Index("idx_users_email", "email"),
         Index("idx_users_username", "username"),
@@ -59,9 +59,7 @@ class Users(SQLModel, table=True):
         )
     )
 
-    
-    #relationships
+    # relationships
     bookings: list["Bookings"] = Relationship(
-        back_populates="user", 
+        back_populates="user",
     )
-    
