@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field,  Relationship
+from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import (
     text,
     Numeric,
@@ -19,12 +19,10 @@ from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 from enum import Enum
 from decimal import Decimal
-from app.modules.bookings.models import BookingSeats
-
 
 if TYPE_CHECKING:
     from app.modules.showtimes.models import Showtimes
-    from app.modules.bookings.models import Bookings
+    from app.modules.bookings.models import Bookings, BookingSeats
 
 
 class SeatType(str, Enum):
@@ -192,7 +190,8 @@ class Seats(SQLModel, table=True):
                 SeatType,
                 name="seat_type",
                 create_type=False,
-                native_enum=True
+                native_enum=True,
+                values_callable=lambda x: [e.value for e in x]
             ),
             nullable=False,
             default=SeatType.STANDARD
@@ -220,5 +219,5 @@ class Seats(SQLModel, table=True):
     )
     bookings: list["Bookings"] = Relationship(
         back_populates="seats",
-        link_model=BookingSeats
+        sa_relationship_kwargs={"secondary": "booking_seats"}
     )

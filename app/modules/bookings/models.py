@@ -111,7 +111,8 @@ class Bookings(SQLModel, table=True):
                 BookingStatus,
                 name="booking_status",
                 create_type=False,
-                native_enum=True
+                native_enum=True,
+                values_callable=lambda x: [e.value for e in x]
             ),
             nullable=False,
             default=BookingStatus.PENDING
@@ -167,11 +168,12 @@ class Bookings(SQLModel, table=True):
         back_populates="bookings"
     )
     showtime: "Showtimes" = Relationship(
-        back_populates="bookings"
+        back_populates="bookings",
+        sa_relationship_kwargs={"lazy": "select"}
     )
     seats: list["Seats"] = Relationship(
         back_populates="bookings",
-        link_model=BookingSeats
+        sa_relationship_kwargs={"secondary": "booking_seats"}
     )
     payments: list["Payments"] = Relationship(
         back_populates="booking"

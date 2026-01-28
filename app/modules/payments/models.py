@@ -57,7 +57,8 @@ class Payments(SQLModel, table=True):
                 PaymentMethod,
                 name="payment_method",
                 create_type=False,
-                native_enum=True
+                native_enum=True,
+                values_callable=lambda x: [e.value for e in x]
             ),
             nullable=False
         )
@@ -74,7 +75,8 @@ class Payments(SQLModel, table=True):
                 PaymentStatus,
                 name="payment_status",
                 create_type=False,
-                native_enum=True
+                native_enum=True,
+                values_callable=lambda x: [e.value for e in x]
             ),
             nullable=False,
             default=PaymentStatus.PENDING
