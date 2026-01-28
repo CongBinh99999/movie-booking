@@ -74,7 +74,7 @@ class TokenResponse(BaseResponse):
     access_token: str = Field(...)
     refresh_token: str = Field(...)
     token_type: str = Field(default="bearer")
-    expires_at: int | None = Field(default=None)
+    expires_at: datetime | None = Field(default=None)
 
 
 class RefreshTokenRequest(BaseRequest):
@@ -116,7 +116,7 @@ class AdminUpdateUserRequest(UpdateProfileRequest):
 
 
 class LogoutRequest(BaseRequest): 
-    access_token: str | None = None 
+    access_token: str 
     refresh_token: str | None = None 
 
     @model_validator(mode="after")

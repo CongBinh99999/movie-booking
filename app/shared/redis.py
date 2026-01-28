@@ -11,7 +11,7 @@ redis_pool = redis.ConnectionPool.from_url(setting.REDIS_URL)
 
 
 async def get_redis() -> AsyncGenerator[redis.Redis, None]:
-    async with redis.Redis(connection_pool=redis_pool) as client:
+    async with redis.Redis(connection_pool=redis_pool, decode_responses=True) as client:
         yield client
 
 

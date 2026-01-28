@@ -1,16 +1,3 @@
-"""Base schemas cho toàn bộ ứng dụng.
-
-Module này định nghĩa các base class mà tất cả schemas
-trong ứng dụng sẽ kế thừa, đảm bảo tính nhất quán
-trong cách xử lý dữ liệu.
-
-Classes:
-    BaseSchema: Schema cơ sở cho tất cả schemas.
-    BaseRequest: Schema cơ sở cho API request.
-    BaseResponse: Schema cơ sở cho API response.
-    TimeStampMixin: Mixin thêm created_at và updated_at.
-    IdentifiableMixin: Mixin thêm field id.
-"""
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
@@ -59,7 +46,6 @@ class BaseRequest(BaseSchema):
         # {"title": "ABC", "duration": 120}  # 'duration' không hợp lệ
     """
     model_config = ConfigDict(
-        **BaseSchema.model_config.__dict__,
         extra="forbid"
     )
 

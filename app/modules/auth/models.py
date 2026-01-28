@@ -35,7 +35,8 @@ class Users(SQLModel, table=True):
                 RoleType,
                 name="user_role",
                 create_type=False,
-                native_enum=True
+                native_enum=True,
+                values_callable=lambda x: [e.value for e in x]
             ),
             nullable=False,
             default=RoleType.USER
@@ -43,6 +44,7 @@ class Users(SQLModel, table=True):
     )
     is_active: bool = Field(default=True)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -51,6 +53,7 @@ class Users(SQLModel, table=True):
     )
 
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
