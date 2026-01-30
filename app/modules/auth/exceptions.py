@@ -1,81 +1,113 @@
+from uuid import UUID
 from app.shared.exceptions import (
     NotFoundError,
     ConflictError,
     UnauthorizedError,
     ForbiddenError
 )
-from uuid import UUID
 
 
 class InvalidCredentialsError(UnauthorizedError):
-    error_code: str = "INVALID_CREDENTIALS_ERROR"
+    """Thông tin đăng nhập không hợp lệ."""
+    
+    error_code = "INVALID_CREDENTIALS"
 
-    def __init__(self, user_id: UUID | None = None):
-        super().__init__(
-            message="Invalid credentials",
-            details={
-                "user_id": str(user_id) if user_id else None
-            }
-        )
+    def __init__(self) -> None:
+        super().__init__(message="Email hoặc mật khẩu không đúng")
 
 
 class InvalidTokenError(UnauthorizedError):
-    error_code: str = "INVALID_TOKEN_ERROR"
+    """Token không hợp lệ."""
+    
+    error_code = "INVALID_TOKEN"
 
-    def __init__(self, reason: str = "Token is invalid or expired"):
-        super().__init__(message=reason)
+    def __init__(self, reason: str | None = None) -> None:
+        self.reason = reason
+        
+        super().__init__(
+            message=reason or "Token không hợp lệ"
+        )
 
 
 class TokenExpiredError(UnauthorizedError):
-    error_code: str = "TOKEN_EXPIRED_ERROR"
+    """Token đã hết hạn."""
+    
+    error_code = "TOKEN_EXPIRED"
 
-    def __init__(self):
-        super().__init__(message="Token has expired")
+    def __init__(self) -> None:
+        super().__init__(message="Token đã hết hạn")
 
 
 class TokenRevokedError(UnauthorizedError):
-    error_code: str = "TOKEN_REVOKED_ERROR"
+    """Token đã bị thu hồi."""
+    
+    error_code = "TOKEN_REVOKED"
 
-    def __init__(self):
-        super().__init__(message="Token is revoked")
+    def __init__(self) -> None:
+        super().__init__(message="Token đã bị thu hồi")
 
 
 class InactiveUserError(ForbiddenError):
-    error_code: str = "INACTIVE_USER_ERROR"
+    """Tài khoản không hoạt động."""
+    
+    error_code = "INACTIVE_USER"
 
-    def __init__(self):
-        super().__init__(message="User account is inactive")
+    def __init__(self) -> None:
+        super().__init__(message="Tài khoản không hoạt động")
 
 
 class InsufficientPermissionsError(ForbiddenError):
-    error_code: str = "INSUFFICIENT_PERMISSIONS"
+    """Không đủ quyền truy cập."""
+    
+    error_code = "INSUFFICIENT_PERMISSIONS"
 
-    def __init__(self, required_role: str | None = None):
-        message = f"Required role: {required_role}" if required_role else "Insufficient permissions"
+    def __init__(self, required_role: str | None = None) -> None:
+        self.required_role = required_role
+        
+        message = "Không đủ quyền truy cập"
+        if required_role:
+            message = f"Yêu cầu quyền: {required_role}"
+        
         super().__init__(message=message)
 
 
 class EmailAlreadyExistsError(ConflictError):
-    error_code: str = "EMAIL_ALREADY_EXISTS"
+    """Email đã được đăng ký."""
+    
+    error_code = "EMAIL_ALREADY_EXISTS"
 
-    def __init__(self, email: str | None = None):
-        message = "Email already exists"
-        details = {"email": email} if email else {}
-        super().__init__(message=message, details=details)
+    def __init__(self, email: str | None = None) -> None:
+        self.email = email
+        
+        super().__init__(
+            message="Email đã tồn tại",
+            details={"email": email} if email else None
+        )
 
 
 class UsernameAlreadyExistsError(ConflictError):
-    error_code: str = "USERNAME_ALREADY_EXISTS"
+    """Tên người dùng đã tồn tại."""
+    
+    error_code = "USERNAME_ALREADY_EXISTS"
 
-    def __init__(self, username: str | None = None):
-        message = "Username already exists"
-        details = {"username": username} if username else {}
-        super().__init__(message=message, details=details)
+    def __init__(self, username: str | None = None) -> None:
+        self.username = username
+        
+        super().__init__(
+            message="Tên người dùng đã tồn tại",
+            details={"username": username} if username else None
+        )
 
 
 class UserNotFoundError(NotFoundError):
-    error_code: str = "USER_NOT_FOUND_ERROR"
+    """Không tìm thấy người dùng."""
+    
+    error_code = "USER_NOT_FOUND"
 
-    def __init__(self, user_id: UUID | None = None):
-        details = {"user_id": str(user_id)} if user_id else {}
-        super().__init__(message="User not found", details=details)
+    def __init__(self, user_id: UUID | None = None) -> None:
+        self.user_id = user_id
+        
+        super().__init__(
+            message="Không tìm thấy người dùng",
+            details={"user_id": str(user_id)} if user_id else None
+        )
