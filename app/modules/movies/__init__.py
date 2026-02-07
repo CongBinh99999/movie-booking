@@ -1,5 +1,5 @@
 """Movies module - movie management."""
 
-from .router import router
+from .router import movie_router, genre_router
 
-__all__ = ["router"]
+__all__ = ["movie_router", "genre_router"]

@@ -1,9 +1,5 @@
-"""Movies API schemas.
-
-Các schema dùng cho API endpoints trong module movies.
-Bao gồm Request và Response schemas.
-"""
 from pydantic import Field
+from typing import Literal
 from datetime import date, datetime
 from uuid import UUID
 
@@ -12,11 +8,12 @@ from app.shared.schemas.base import (
     BaseRequest
 )
 from app.shared.schemas.pagination import PaginationResponse
+from typing import Literal
 
 
 class MovieCreateRequest(BaseRequest):
     """Request tạo phim mới.
-    
+
     Attributes:
         title: Tên phim tiếng Việt.
         original_title: Tên gốc của phim.
@@ -45,14 +42,15 @@ class MovieCreateRequest(BaseRequest):
     language: str | None = None
     subtitle: str | None = None
     age_rating: str | None = None
+    genre_ids: list[UUID] = Field(default_factory=list)
 
 
 class MovieUpdateRequest(BaseRequest):
     """Request cập nhật thông tin phim.
-    
+
     Tất cả các field đều optional. 
     Chỉ truyền field nào cần update.
-    
+
     Attributes:
         title: Tên phim mới.
         original_title: Tên gốc mới.
@@ -85,9 +83,9 @@ class MovieUpdateRequest(BaseRequest):
 
 class MovieResponse(BaseResponse):
     """Response chi tiết một phim.
-    
+
     Trả về đầy đủ thông tin của một phim.
-    
+
     Attributes:
         id: ID duy nhất của phim.
         title: Tên phim tiếng Việt.
@@ -128,7 +126,7 @@ class MovieResponse(BaseResponse):
 
 class MovieListResponse(PaginationResponse[MovieResponse]):
     """Response danh sách phim có phân trang.
-    
+
     Kế thừa từ PaginationResponse, cung cấp:
     - items: Danh sách MovieResponse của trang hiện tại.
     - total: Tổng số phim trong database.
@@ -143,18 +141,23 @@ class MovieListResponse(PaginationResponse[MovieResponse]):
 
 class GenreCreateRequest(BaseRequest):
     """Request tạo thể loại mới.
-    
+
     Attributes:
         name: Tên thể loại (VD: "Hành động").
-        slug: Slug URL-friendly (VD: "hanh-dong").
+        slug: Slug URL-friendly (VD: "hanh-dong"). Tự động generate nếu không truyền.
     """
     name: str = Field(..., max_length=100)
-    slug: str = Field(..., max_length=100)
+    slug: str | None = Field(default=None, max_length=100)
+
+
+class GenreUpdateRequest(BaseRequest):
+    name: str | None = None
+    slug: str | None = None
 
 
 class GenreResponse(BaseResponse):
     """Response chi tiết một thể loại.
-    
+
     Attributes:
         id: ID duy nhất.
         name: Tên thể loại.
@@ -169,7 +172,7 @@ class GenreResponse(BaseResponse):
 
 class GenreListResponse(PaginationResponse[GenreResponse]):
     """Response danh sách thể loại có phân trang.
-    
+
     Kế thừa từ PaginationResponse[GenreResponse].
     """
     pass
@@ -177,9 +180,9 @@ class GenreListResponse(PaginationResponse[GenreResponse]):
 
 class MovieQueryParams(BaseRequest):
     """Query parameters cho tìm kiếm phim.
-    
+
     Dùng làm query params trong GET /movies endpoint.
-    
+
     Attributes:
         title: Tìm theo tên phim (LIKE).
         original_title: Tìm theo tên gốc.
@@ -190,3 +193,18 @@ class MovieQueryParams(BaseRequest):
     original_title: str | None = None
     release_date: date | None = None
     genre_ids: list[UUID] | None = None
+    status: Literal["now_showing", "coming_soon"] | None = None
+    is_active: bool | None = None
+    skip: int = 0
+    limit: int = 20
+
+
+class UpdateMovieGenresRequest(BaseRequest):
+    """Request cập nhật thể loại cho phim.
+
+    Attributes:
+        genre_ids: Danh sách ID thể loại.
+        action: "add" | "remove" | "replace"
+    """
+    genre_ids: list[UUID] = Field(default_factory=list)
+    action: Literal["add", "remove", "replace"]

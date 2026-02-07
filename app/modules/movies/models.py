@@ -45,6 +45,7 @@ class Genres(SQLModel, table=True):
     name: str = Field(max_length=100, nullable=False, unique=True)
     slug: str = Field(max_length=100, nullable=False, unique=True)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -99,6 +100,7 @@ class Movies(SQLModel, table=True):
     age_rating: str | None = Field(default=None, max_length=10)
     is_active: bool = Field(nullable=False, default=True)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -107,6 +109,7 @@ class Movies(SQLModel, table=True):
         )
     )
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,

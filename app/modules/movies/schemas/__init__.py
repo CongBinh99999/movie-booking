@@ -18,6 +18,7 @@ from app.modules.movies.schemas.api import (
     GenreResponse,
     GenreListResponse,
     MovieQueryParams,
+    UpdateMovieGenresRequest,
 )
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "GenreResponse",
     "GenreListResponse",
     "MovieQueryParams",
+    "UpdateMovieGenresRequest",
 ]
