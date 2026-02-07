@@ -1,15 +1,4 @@
 """Auth Router - API endpoints cho authentication.
-
-TODO: Triển khai các endpoints sau:
-
-=== CÓ SẴN SERVICE - Triển khai ngay ===
-[ ] POST /register          - Đăng ký (service.register)
-[ ] POST /login             - Đăng nhập (service.login)
-[ ] POST /logout            - Đăng xuất (service.logout)
-[ ] POST /refresh           - Làm mới token (service.refresh_token)
-[ ] GET  /me                - Lấy thông tin user (dependency CurrentUser)
-[ ] POST /me/change-password - Đổi mật khẩu (service.change_password)
-
 === CẦN THÊM SERVICE - Triển khai sau ===
 [ ] PUT  /me                - Cập nhật profile (cần service.update_profile)
 [ ] POST /forgot-password   - Gửi email reset (cần email service)
