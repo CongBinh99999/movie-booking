@@ -1,3 +1,4 @@
+from app.shared.schemas.pagination import PaginationResponse
 from app.shared.schemas.base import BaseSchema
 from app.shared.schemas.nested import (
     CinemaBasic,
@@ -19,14 +20,46 @@ class CinemaDTO(CinemaBasic):
     email: str | None = None
     description: str | None = None
     image_url: str | None
-    latitude: Decimal
-    longitude: Decimal
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
 
 
+class CinemaCreate(BaseSchema):
+    """Schema dữ liệu để tạo Cinema (domain layer)."""
+    name: str = Field(..., max_length=255)
+    address: str = Field(..., max_length=255)
+    city: str = Field(..., max_length=100)
+    district: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
+    email: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None)
+    image_url: str | None = Field(default=None, max_length=500)
+    latitude: Decimal
+    longitude: Decimal
+
+
+class CinemaUpdate(BaseSchema):
+    """Schema dữ liệu để cập nhật Cinema (domain layer).
+
+    Tất cả field đều optional.
+    """
+    name: str | None = Field(default=None, max_length=255)
+    address: str | None = Field(default=None, max_length=255)
+    city: str | None = Field(default=None, max_length=100)
+    district: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=20)
+    email: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None)
+    image_url: str | None = Field(default=None, max_length=500)
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
+
+
 class RoomDTO(RoomBasic):
+    cinema_id: UUID
     total_rows: int
     seats_per_row: int
     total_seats: int
@@ -35,11 +68,62 @@ class RoomDTO(RoomBasic):
     updated_at: datetime
 
 
+class RoomCreate(BaseSchema):
+    """Schema dữ liệu để tạo Room (domain layer)."""
+    name: str = Field(..., max_length=100)
+    room_type: str = Field(..., max_length=50)
+    total_rows: int = Field(..., gt=0)
+    seats_per_row: int = Field(..., gt=0)
+
+    patterns: list["SeatPattern"] | None = Field(
+        default=None,
+        description="Custom patterns. Nếu không truyền sẽ dùng preset theo room_type."
+    )
+    use_default_only: bool = Field(
+        default=False,
+        description="Nếu True và không có patterns, tất cả ghế sẽ là STANDARD"
+    )
+
+
+class RoomUpdate(BaseSchema):
+    """Schema dữ liệu để cập nhật Room (domain layer)."""
+    name: str | None = Field(default=None, max_length=100)
+    room_type: str | None = Field(default=None, max_length=50)
+    is_active: bool | None = None
+
+
 class SeatDTO(SeatBasic):
     room_id: UUID
     price_multiplier: Decimal
     is_active: bool
     created_at: datetime
+
+
+class SeatCreate(BaseSchema):
+    """Schema dữ liệu để tạo Seat (domain layer)."""
+    row_label: str = Field(..., pattern=r'^[A-Z]$')
+    seat_number: int = Field(..., gt=0)
+    seat_type: SeatType = Field(default=SeatType.STANDARD)
+    price_multiplier: Decimal = Field(
+        default=Decimal("1.00"),
+        ge=1.00,
+        le=3.00,
+        description="Hệ số giá (1.0 = chuẩn, 1.5 = VIP)"
+    )
+
+
+class SeatUpdate(BaseSchema):
+    """Schema dữ liệu để cập nhật Seat (domain layer)."""
+    seat_type: SeatType | None = None
+    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+    is_active: bool | None = None
+
+
+class BulkSeatUpdate(BaseSchema):
+    """Schema dữ liệu để bulk update Seat (domain layer)."""
+    seat_ids: list[UUID] = Field(..., min_length=1)
+    seat_type: SeatType | None = None
+    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
 
 
 class SeatPattern(BaseSchema):
@@ -91,6 +175,7 @@ class SeatGenerationConfig(BaseSchema):
 
 
 class RoomWithSeats(BaseSchema):
+    id: UUID
     cinema_id: UUID
     name: str = Field(..., max_length=100)
     room_type: str = Field(..., max_length=50)
@@ -98,6 +183,8 @@ class RoomWithSeats(BaseSchema):
     seats_per_row: int = Field(..., gt=0)
     total_seats: int = Field(..., gt=0)
     is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
     seats: list[SeatDTO] = Field(
         default_factory=list,
         description="Danh sách tất cả ghế trong phòng"
@@ -197,3 +284,35 @@ class SeatAvailabilityQuery(BaseSchema):
         default=True,
         description="Chỉ lấy ghế còn trống"
     )
+
+
+class CinemaPaginatedDTO(PaginationResponse[CinemaDTO]):
+    """Paginated response cho danh sách Cinema (domain layer).
+
+    Sử dụng trong service layer để trả về kết quả phân trang.
+
+    Example:
+        return CinemaPaginatedDTO(
+            items=[CinemaDTO.model_validate(c) for c in cinemas],
+            total=total_count,
+            page=pagination.page,
+            size=pagination.size
+        )
+    """
+    pass
+
+
+class RoomPaginatedDTO(PaginationResponse[RoomDTO]):
+    """Paginated response cho danh sách Room (domain layer).
+
+    Sử dụng trong service layer để trả về kết quả phân trang.
+    """
+    pass
+
+
+class SeatPaginatedDTO(PaginationResponse[SeatDTO]):
+    """Paginated response cho danh sách Seat (domain layer).
+
+    Sử dụng trong service layer để trả về kết quả phân trang.
+    """
+    pass

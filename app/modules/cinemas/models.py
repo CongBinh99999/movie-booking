@@ -62,6 +62,7 @@ class Cinemas(SQLModel, table=True):
     )
     is_active: bool = Field(default=True, nullable=False)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -69,6 +70,7 @@ class Cinemas(SQLModel, table=True):
         )
     )
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -119,6 +121,7 @@ class Rooms(SQLModel, table=True):
     total_seats: int = Field(nullable=False, gt=0)
     is_active: bool = Field(nullable=False, default=True)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -126,6 +129,7 @@ class Rooms(SQLModel, table=True):
         )
     )
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -139,10 +143,12 @@ class Rooms(SQLModel, table=True):
         back_populates="rooms"
     )
     showtimes: list["Showtimes"] = Relationship(
-        back_populates="room"
+        back_populates="room",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
     seats: list["Seats"] = Relationship(
-        back_populates="room"
+        back_populates="room",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
 
 
@@ -206,6 +212,7 @@ class Seats(SQLModel, table=True):
     )
     is_active: bool = Field(default=True, nullable=False)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,

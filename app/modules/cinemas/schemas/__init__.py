@@ -1,15 +1,27 @@
 """Cinemas schemas package."""
 from app.modules.cinemas.schemas.domain import (
     CinemaDTO,
+    CinemaCreate,
+    CinemaUpdate,
     RoomDTO,
+    RoomCreate,
+    RoomUpdate,
     SeatDTO,
+    SeatCreate,
+    SeatUpdate,
+    BulkSeatUpdate,
     SeatPattern,
     SeatGenerationConfig,
     RoomWithSeats,
     CinemaWithRooms,
     CinemaSearchCriteria,
     SeatAvailabilityQuery,
+    # Pagination DTOs
+    CinemaPaginatedDTO,
+    RoomPaginatedDTO,
+    SeatPaginatedDTO,
 )
+
 
 from app.modules.cinemas.schemas.api import (
     CinemaCreateRequest,
@@ -21,24 +33,37 @@ from app.modules.cinemas.schemas.api import (
     RoomUpdateRequest,
     RoomResponse,
     RoomListResponse,
+    RoomWithSeatsResponse,
     SeatCreateRequest,
     SeatUpdateRequest,
     SeatResponse,
     SeatListResponse,
     BulkSeatCreateRequest,
+    BulkSeatUpdateRequest,
 )
 
 __all__ = [
     # Domain schemas
     "CinemaDTO",
+    "CinemaCreate",
+    "CinemaUpdate",
     "RoomDTO",
+    "RoomCreate",
+    "RoomUpdate",
     "SeatDTO",
+    "SeatCreate",
+    "SeatUpdate",
+    "BulkSeatUpdate",
     "SeatPattern",
     "SeatGenerationConfig",
     "RoomWithSeats",
     "CinemaWithRooms",
     "CinemaSearchCriteria",
     "SeatAvailabilityQuery",
+    # Pagination DTOs
+    "CinemaPaginatedDTO",
+    "RoomPaginatedDTO",
+    "SeatPaginatedDTO",
     # API schemas
     "CinemaCreateRequest",
     "CinemaUpdateRequest",
@@ -49,9 +74,11 @@ __all__ = [
     "RoomUpdateRequest",
     "RoomResponse",
     "RoomListResponse",
+    "RoomWithSeatsResponse",
     "SeatCreateRequest",
     "SeatUpdateRequest",
     "SeatResponse",
     "SeatListResponse",
     "BulkSeatCreateRequest",
+    "BulkSeatUpdateRequest",
 ]

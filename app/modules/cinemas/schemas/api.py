@@ -21,7 +21,7 @@ from datetime import datetime
 
 class CinemaCreateRequest(BaseRequest):
     """Request tạo rạp mới.
-    
+
     Attributes:
         name: Tên rạp.
         address: Địa chỉ chi tiết.
@@ -48,7 +48,7 @@ class CinemaCreateRequest(BaseRequest):
 
 class CinemaUpdateRequest(BaseRequest):
     """Request cập nhật thông tin rạp.
-    
+
     Tất cả field đều optional.
     Chỉ truyền field nào cần update.
     """
@@ -64,9 +64,34 @@ class CinemaUpdateRequest(BaseRequest):
     longitude: Decimal | None = None
 
 
+class CinemaSearchRequest(BaseRequest):
+    """Request tìm kiếm rạp chiếu phim.
+
+    Tất cả field đều optional — truyền field nào thì lọc theo field đó.
+
+    Attributes:
+        city: Lọc theo thành phố.
+        district: Lọc theo quận/huyện.
+        name_contains: Tìm theo tên (LIKE).
+        is_active: Lọc theo trạng thái hoạt động.
+        lat_min: Vĩ độ tối thiểu (bounding box).
+        lat_max: Vĩ độ tối đa (bounding box).
+        lng_min: Kinh độ tối thiểu (bounding box).
+        lng_max: Kinh độ tối đa (bounding box).
+    """
+    city: str | None = Field(None, description="Lọc theo thành phố")
+    district: str | None = Field(None, description="Lọc theo quận/huyện")
+    name_contains: str | None = Field(None, description="Tìm theo tên (LIKE)")
+    is_active: bool | None = Field(None, description="Lọc theo trạng thái")
+    lat_min: Decimal | None = Field(None, ge=-90, le=90)
+    lat_max: Decimal | None = Field(None, ge=-90, le=90)
+    lng_min: Decimal | None = Field(None, ge=-180, le=180)
+    lng_max: Decimal | None = Field(None, ge=-180, le=180)
+
+
 class CinemaResponse(BaseResponse):
     """Response chi tiết một rạp.
-    
+
     Attributes:
         id: ID duy nhất của rạp.
         name: Tên rạp.
@@ -92,8 +117,8 @@ class CinemaResponse(BaseResponse):
     email: str | None
     description: str | None
     image_url: str | None
-    latitude: Decimal
-    longitude: Decimal
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -101,9 +126,9 @@ class CinemaResponse(BaseResponse):
 
 class CinemaWithRoomsResponse(CinemaResponse):
     """Response rạp kèm danh sách phòng.
-    
+
     Mở rộng từ CinemaResponse, thêm danh sách phòng chiếu.
-    
+
     Attributes:
         rooms: Danh sách phòng chiếu.
         room_count: Số lượng phòng (computed).
@@ -119,7 +144,7 @@ class CinemaWithRoomsResponse(CinemaResponse):
 
 class CinemaListResponse(PaginationResponse[CinemaResponse]):
     """Response danh sách rạp có phân trang.
-    
+
     Kế thừa từ PaginationResponse[CinemaResponse].
     """
     pass
@@ -127,10 +152,10 @@ class CinemaListResponse(PaginationResponse[CinemaResponse]):
 
 class RoomCreateRequest(BaseRequest):
     """Request tạo phòng chiếu mới.
-    
+
     Khi tạo phòng, ghế sẽ được tự động generate dựa trên
     total_rows và seats_per_row.
-    
+
     Attributes:
         name: Tên phòng (VD: "Phòng 1", "Hall A").
         room_type: Loại phòng (VD: "2D", "3D", "IMAX").
@@ -159,10 +184,10 @@ class RoomCreateRequest(BaseRequest):
 
 class RoomUpdateRequest(BaseRequest):
     """Request cập nhật phòng chiếu.
-    
+
     Lưu ý: Không thể update total_rows và seats_per_row
     vì sẽ ảnh hưởng đến cấu trúc ghế.
-    
+
     Attributes:
         name: Tên phòng mới.
         room_type: Loại phòng mới.
@@ -175,7 +200,7 @@ class RoomUpdateRequest(BaseRequest):
 
 class RoomResponse(BaseResponse):
     """Response chi tiết một phòng.
-    
+
     Attributes:
         id: ID duy nhất của phòng.
         cinema_id: ID rạp chứa phòng.
@@ -202,7 +227,7 @@ class RoomResponse(BaseResponse):
 
 class RoomListResponse(PaginationResponse[RoomResponse]):
     """Response danh sách phòng có phân trang.
-    
+
     Kế thừa từ PaginationResponse[RoomResponse].
     """
     pass
@@ -210,10 +235,10 @@ class RoomListResponse(PaginationResponse[RoomResponse]):
 
 class SeatCreateRequest(BaseRequest):
     """Request tạo ghế mới.
-    
+
     Thường không cần dùng trực tiếp vì ghế được
     auto-generate khi tạo phòng.
-    
+
     Attributes:
         row_label: Nhãn hàng (A-Z).
         seat_number: Số ghế trong hàng (> 0).
@@ -233,9 +258,9 @@ class SeatCreateRequest(BaseRequest):
 
 class SeatUpdateRequest(BaseRequest):
     """Request cập nhật ghế.
-    
+
     Thường dùng để thay đổi loại ghế hoặc vô hiệu hóa ghế.
-    
+
     Attributes:
         seat_type: Loại ghế mới.
         price_multiplier: Hệ số giá mới.
@@ -248,7 +273,7 @@ class SeatUpdateRequest(BaseRequest):
 
 class SeatResponse(BaseResponse):
     """Response chi tiết một ghế.
-    
+
     Attributes:
         id: ID duy nhất của ghế.
         room_id: ID phòng chứa ghế.
@@ -278,7 +303,7 @@ class SeatResponse(BaseResponse):
 
 class SeatListResponse(PaginationResponse[SeatResponse]):
     """Response danh sách ghế có phân trang.
-    
+
     Kế thừa từ PaginationResponse[SeatResponse].
     """
     pass
@@ -286,10 +311,53 @@ class SeatListResponse(PaginationResponse[SeatResponse]):
 
 class BulkSeatCreateRequest(BaseRequest):
     """Request tạo nhiều ghế cùng lúc.
-    
+
     Dùng khi cần tạo ghế thủ công thay vì auto-generate.
-    
+
     Attributes:
         seats: Danh sách ghế cần tạo (1-1500).
     """
     seats: list[SeatCreateRequest] = Field(..., min_length=1, max_length=1500)
+
+
+class BulkSeatUpdateRequest(BaseRequest):
+    """Request cập nhật nhiều ghế cùng lúc.
+
+    Dùng để thay đổi loại ghế hoặc hệ số giá cho nhiều ghế.
+
+    Attributes:
+        seat_ids: Danh sách ID ghế cần cập nhật.
+        seat_type: Loại ghế mới (optional).
+        price_multiplier: Hệ số giá mới (optional).
+    """
+    seat_ids: list[UUID] = Field(..., min_length=1, max_length=500)
+    seat_type: SeatType | None = None
+    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+
+
+class RoomWithSeatsResponse(RoomResponse):
+    """Response phòng kèm danh sách ghế.
+
+    Dùng cho endpoint lấy chi tiết phòng với sơ đồ ghế.
+
+    Attributes:
+        seats: Danh sách tất cả ghế trong phòng.
+        seats_by_type: Thống kê số ghế theo loại (computed).
+    """
+    seats: list[SeatResponse] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def seats_by_type(self) -> dict[str, int]:
+        """Thống kê số ghế theo loại."""
+        counts: dict[str, int] = {}
+        for seat in self.seats:
+            seat_type = seat.seat_type.value
+            counts[seat_type] = counts.get(seat_type, 0) + 1
+        return counts
+
+    @computed_field
+    @property
+    def active_seats_count(self) -> int:
+        """Số ghế đang hoạt động."""
+        return sum(1 for seat in self.seats if seat.is_active)
