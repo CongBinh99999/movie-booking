@@ -9,7 +9,6 @@ from datetime import date
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import contains_eager, selectinload
 from sqlmodel import col
-from app.modules.showtimes.models import Showtimes
 
 
 class RoomRepository:
@@ -109,7 +108,7 @@ class RoomRepository:
 
         return room
 
-    async def delete(self, room: Rooms) -> bool:
+    async def delete(self, room: Rooms) -> None:
         """Xoá phòng chiếu (hard delete).
 
         Lưu ý: Cascade delete sẽ xoá tất cả ghế trong phòng.
@@ -122,8 +121,6 @@ class RoomRepository:
         """
         await self.db.delete(room)
         await self.db.flush()
-
-        return True
 
     async def get_active_by_cinema(self, cinema_id: UUID) -> list[Rooms]:
         """Lấy danh sách phòng chiếu đang hoạt động trong một cinema.
@@ -248,7 +245,9 @@ class RoomRepository:
             )
             result = await self.db.execute(query)
             return result.scalar_one_or_none()
-            
+
+        from app.modules.showtimes.models import Showtimes
+
         join_condition = and_(
             Showtimes.room_id == Rooms.id,
             func.date(Showtimes.start_time) == target_date,

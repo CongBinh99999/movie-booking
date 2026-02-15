@@ -66,6 +66,7 @@ class Showtimes(SQLModel, table=True):
     )
     is_active: bool = Field(default=True, nullable=False)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
@@ -73,6 +74,7 @@ class Showtimes(SQLModel, table=True):
         )
     )
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,

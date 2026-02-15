@@ -106,16 +106,16 @@ class SeatCreate(BaseSchema):
     seat_type: SeatType = Field(default=SeatType.STANDARD)
     price_multiplier: Decimal = Field(
         default=Decimal("1.00"),
-        ge=1.00,
-        le=3.00,
-        description="Hệ số giá (1.0 = chuẩn, 1.5 = VIP)"
+        ge=Decimal("1.00"),
+        le=Decimal("3.00"),
     )
 
 
 class SeatUpdate(BaseSchema):
     """Schema dữ liệu để cập nhật Seat (domain layer)."""
     seat_type: SeatType | None = None
-    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+    price_multiplier: Decimal | None = Field(
+        default=None, ge=Decimal("1.00"), le=Decimal("3.00"))
     is_active: bool | None = None
 
 
@@ -123,13 +123,15 @@ class BulkSeatUpdate(BaseSchema):
     """Schema dữ liệu để bulk update Seat (domain layer)."""
     seat_ids: list[UUID] = Field(..., min_length=1)
     seat_type: SeatType | None = None
-    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+    price_multiplier: Decimal | None = Field(
+        default=None, ge=Decimal("1.00"), le=Decimal("3.00"))
 
 
 class SeatPattern(BaseSchema):
     row_range: str = Field(..., pattern=r'^[A-Z](-[A-Z])?$')
     seat_type: SeatType
-    price_multiplier: Decimal = Field(..., ge=1.0, le=3.0)
+    price_multiplier: Decimal = Field(..., ge=Decimal(
+        "1.00"), le=Decimal("3.00"))
 
     @computed_field
     @property

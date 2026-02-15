@@ -18,7 +18,7 @@ class RegisterRequest(BaseRequest):
 
     @field_validator("username")
     @classmethod
-    def valiate_username(cls, value: str) -> str:
+    def validate_username(cls, value: str) -> str:
 
         if len(value) < 3 or len(value) > 100:
             raise ValueError(
@@ -88,39 +88,61 @@ class UserResponse(BaseResponse, TimeStampMixin):
 
 
 class UpdateProfileRequest(BaseRequest):
-    email: str | None = None 
-    full_name: str | None = None 
+    email: EmailStr | None = None
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        """full_name không được là chuỗi rỗng hoặc chỉ chứa whitespace."""
+        if value is not None and value.strip() == "":
+            raise ValueError("full_name không được là chuỗi rỗng")
+        return value
 
 
 class ChangePasswordRequest(BaseRequest):
-    old_password: str
-    new_password: str 
-    confirmed_new_password: str 
+    old_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=255)
+    confirmed_new_password: str = Field(..., min_length=8, max_length=255)
 
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password_strength(cls, value: str) -> str:
+        """new_password phải đủ mạnh: uppercase, lowercase, digit, special char."""
+        if not re.search(r"[A-Z]", value):
+            raise ValueError("Password mới phải chứa ít nhất một chữ hoa")
+        if not re.search(r"[a-z]", value):
+            raise ValueError("Password mới phải chứa ít nhất một chữ thường")
+        if not re.search(r"[0-9]", value):
+            raise ValueError("Password mới phải chứa ít nhất một số")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError(
+                "Password mới phải chứa ít nhất một ký tự đặc biệt")
+        return value
 
     @model_validator(mode="after")
-    def validate_password_match(self) -> "ChangePasswordRequest": 
+    def validate_password_match(self) -> "ChangePasswordRequest":
         if self.new_password != self.confirmed_new_password:
             raise ValueError(
                 "new_password và confirmed_new_password không khớp")
         return self
 
-    
-class UserListResponse(PaginationResponse[UserBasic]): 
-    pass 
+
+class UserListResponse(PaginationResponse[UserBasic]):
+    pass
 
 
 class AdminUpdateUserRequest(UpdateProfileRequest):
     role: RoleType | None = None
-    is_active: bool | None = None 
+    is_active: bool | None = None
 
 
-class LogoutRequest(BaseRequest): 
-    access_token: str 
-    refresh_token: str | None = None 
+class LogoutRequest(BaseRequest):
+    access_token: str
+    refresh_token: str | None = None
 
     @model_validator(mode="after")
-    def at_least_one_token(self) -> "LogoutRequest": 
+    def at_least_one_token(self) -> "LogoutRequest":
         if not self.access_token and not self.refresh_token:
             raise ValueError("Phải cung cấp ít nhất 1 trong 2 token")
-        return self 
+        return self

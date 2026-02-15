@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator, model_validator
 from typing import Literal
 from datetime import date, datetime
 from uuid import UUID
@@ -9,6 +9,12 @@ from app.shared.schemas.base import (
 )
 from app.shared.schemas.pagination import PaginationResponse
 from typing import Literal
+import re
+
+# -- Constants --
+MAX_CAST_MEMBERS = 50
+MAX_CAST_MEMBER_NAME_LENGTH = 100
+URL_PATTERN = re.compile(r'^https?://.+', re.IGNORECASE)
 
 
 class MovieCreateRequest(BaseRequest):
@@ -43,6 +49,37 @@ class MovieCreateRequest(BaseRequest):
     subtitle: str | None = None
     age_rating: str | None = None
     genre_ids: list[UUID] = Field(default_factory=list)
+
+    @field_validator("poster_url", "trailer_url")
+    @classmethod
+    def validate_url_format(cls, value: str | None) -> str | None:
+        """URL phải bắt đầu bằng http:// hoặc https://."""
+        if value is not None and not URL_PATTERN.match(value):
+            raise ValueError("URL phải bắt đầu bằng http:// hoặc https://")
+        return value
+
+    @field_validator("cast_members")
+    @classmethod
+    def validate_cast_members(cls, value: list[str]) -> list[str]:
+        """Tối đa 50 diễn viên, mỗi tên ≤ 100 ký tự."""
+        if len(value) > MAX_CAST_MEMBERS:
+            raise ValueError(f"Tối đa {MAX_CAST_MEMBERS} diễn viên")
+        for name in value:
+            if len(name) > MAX_CAST_MEMBER_NAME_LENGTH:
+                raise ValueError(
+                    f"Tên diễn viên không được vượt quá {MAX_CAST_MEMBER_NAME_LENGTH} ký tự"
+                )
+            if name.strip() == "":
+                raise ValueError("Tên diễn viên không được là chuỗi rỗng")
+        return value
+
+    @model_validator(mode='after')
+    def validate_date_range(self) -> 'MovieCreateRequest':
+        """end_date phải >= release_date khi cả 2 được truyền."""
+        if self.release_date and self.end_date:
+            if self.end_date < self.release_date:
+                raise ValueError("end_date phải sau hoặc bằng release_date")
+        return self
 
 
 class MovieUpdateRequest(BaseRequest):
@@ -79,6 +116,39 @@ class MovieUpdateRequest(BaseRequest):
     language: str | None = None
     subtitle: str | None = None
     age_rating: str | None = None
+
+    @field_validator("poster_url", "trailer_url")
+    @classmethod
+    def validate_url_format(cls, value: str | None) -> str | None:
+        """URL phải bắt đầu bằng http:// hoặc https://."""
+        if value is not None and not URL_PATTERN.match(value):
+            raise ValueError("URL phải bắt đầu bằng http:// hoặc https://")
+        return value
+
+    @field_validator("cast_members")
+    @classmethod
+    def validate_cast_members(cls, value: list[str] | None) -> list[str] | None:
+        """Tối đa 50 diễn viên, mỗi tên ≤ 100 ký tự."""
+        if value is None:
+            return value
+        if len(value) > MAX_CAST_MEMBERS:
+            raise ValueError(f"Tối đa {MAX_CAST_MEMBERS} diễn viên")
+        for name in value:
+            if len(name) > MAX_CAST_MEMBER_NAME_LENGTH:
+                raise ValueError(
+                    f"Tên diễn viên không được vượt quá {MAX_CAST_MEMBER_NAME_LENGTH} ký tự"
+                )
+            if name.strip() == "":
+                raise ValueError("Tên diễn viên không được là chuỗi rỗng")
+        return value
+
+    @model_validator(mode='after')
+    def validate_date_range(self) -> 'MovieUpdateRequest':
+        """end_date phải >= release_date khi cả 2 được truyền."""
+        if self.release_date and self.end_date:
+            if self.end_date < self.release_date:
+                raise ValueError("end_date phải sau hoặc bằng release_date")
+        return self
 
 
 class MovieResponse(BaseResponse):

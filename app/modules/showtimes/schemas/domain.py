@@ -20,10 +20,10 @@ from pydantic import Field, model_validator
 
 class ShowtimeDTO(ShowtimeBasic):
     """Schema đầy đủ cho Showtime (suất chiếu).
-    
+
     Kế thừa từ ShowtimeBasic (id, start_time, end_time)
     và bổ sung các thông tin chi tiết.
-    
+
     Attributes:
         movie_id: ID phim được chiếu.
         room_id: ID phòng chiếu.
@@ -40,12 +40,61 @@ class ShowtimeDTO(ShowtimeBasic):
     updated_at: datetime
 
 
+class ShowtimeCreate(BaseSchema):
+    """Schema dữ liệu để tạo Showtime (domain layer).
+
+    Attributes:
+        movie_id: ID phim.
+        room_id: ID phòng chiếu.
+        start_time: Thời gian bắt đầu.
+        end_time: Thời gian kết thúc.
+        base_price: Giá vé cơ bản.
+    """
+    movie_id: UUID
+    room_id: UUID
+    start_time: datetime
+    end_time: datetime
+    base_price: Decimal = Field(..., gt=0, le=10000000)
+
+    @model_validator(mode='after')
+    def validate_time_range(self) -> 'ShowtimeCreate':
+        """Kiểm tra start_time phải trước end_time."""
+        if self.start_time >= self.end_time:
+            raise ValueError("start_time phải trước end_time")
+        return self
+
+
+class ShowtimeUpdate(BaseSchema):
+    """Schema dữ liệu để cập nhật Showtime (domain layer).
+
+    Tất cả field đều optional.
+
+    Attributes:
+        start_time: Thời gian bắt đầu mới.
+        end_time: Thời gian kết thúc mới.
+        base_price: Giá vé cơ bản mới.
+        is_active: Trạng thái hoạt động.
+    """
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    base_price: Decimal | None = Field(default=None, gt=0, le=10000000)
+    is_active: bool | None = None
+
+    @model_validator(mode='after')
+    def validate_time_range(self) -> 'ShowtimeUpdate':
+        """Kiểm tra start_time phải trước end_time khi cả 2 được truyền."""
+        if self.start_time is not None and self.end_time is not None:
+            if self.start_time >= self.end_time:
+                raise ValueError("start_time phải trước end_time")
+        return self
+
+
 class ShowtimeWithDetails(ShowtimeBasic):
     """Suất chiếu kèm thông tin chi tiết.
-    
+
     Dùng khi cần hiển thị suất chiếu cùng thông tin
     phim, phòng chiếu và rạp.
-    
+
     Attributes:
         base_price: Giá vé cơ bản.
         is_active: Suất chiếu còn hoạt động không.
@@ -62,10 +111,10 @@ class ShowtimeWithDetails(ShowtimeBasic):
 
 class SeatAvailability(SeatBasic):
     """Thông tin ghế kèm trạng thái có sẵn.
-    
+
     Dùng khi hiển thị sơ đồ ghế cho một suất chiếu,
     cho biết ghế nào còn trống, ghế nào đã đặt.
-    
+
     Attributes:
         price_multiplier: Hệ số giá (VD: 1.5 cho VIP).
         is_available: Ghế còn trống không.
@@ -78,10 +127,10 @@ class SeatAvailability(SeatBasic):
 
 class ShowtimeWithSeats(ShowtimeBasic):
     """Suất chiếu kèm danh sách ghế và trạng thái.
-    
+
     Dùng cho màn hình chọn ghế, hiển thị sơ đồ ghế
     với trạng thái có sẵn của từng ghế.
-    
+
     Attributes:
         base_price: Giá vé cơ bản.
         movie: Thông tin phim.
@@ -98,9 +147,9 @@ class ShowtimeWithSeats(ShowtimeBasic):
 
 class ShowtimeSearchCriteria(BaseSchema):
     """Tiêu chí tìm kiếm suất chiếu.
-    
+
     Dùng trong service layer để filter suất chiếu.
-    
+
     Attributes:
         movie_id: Lọc theo phim.
         room_id: Lọc theo phòng chiếu.
@@ -109,12 +158,12 @@ class ShowtimeSearchCriteria(BaseSchema):
         date_to: Lọc đến thời điểm.
         is_active: Lọc theo trạng thái hoạt động.
     """
-    movie_id: UUID | None = Field(None, description="Lọc theo phim")
-    room_id: UUID | None = Field(None, description="Lọc theo phòng")
-    cinema_id: UUID | None = Field(None, description="Lọc theo rạp")
-    date_from: datetime | None = Field(None, description="Từ thời điểm")
-    date_to: datetime | None = Field(None, description="Đến thời điểm")
-    is_active: bool | None = Field(None, description="Lọc theo trạng thái")
+    movie_id: UUID | None = None
+    room_id: UUID | None = None
+    cinema_id: UUID | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    is_active: bool | None = None
 
     @model_validator(mode='after')
     def validate_date_range(self) -> 'ShowtimeSearchCriteria':
@@ -127,10 +176,10 @@ class ShowtimeSearchCriteria(BaseSchema):
 
 class DailyShowtimeSchedule(BaseSchema):
     """Lịch chiếu theo ngày.
-    
+
     Dùng để hiển thị tất cả suất chiếu của một phim
     trong một ngày cụ thể.
-    
+
     Attributes:
         date: Ngày chiếu.
         movie: Thông tin phim.
@@ -143,10 +192,10 @@ class DailyShowtimeSchedule(BaseSchema):
 
 class ShowtimeConflictCheck(BaseSchema):
     """Schema kiểm tra xung đột lịch chiếu.
-    
+
     Dùng để kiểm tra xem một suất chiếu mới có
     xung đột với các suất chiếu hiện có không.
-    
+
     Attributes:
         room_id: ID phòng chiếu cần kiểm tra.
         start_time: Thời gian bắt đầu dự kiến.
@@ -157,10 +206,7 @@ class ShowtimeConflictCheck(BaseSchema):
     room_id: UUID
     start_time: datetime
     end_time: datetime
-    exclude_showtime_id: UUID | None = Field(
-        None,
-        description="ID suất chiếu cần loại trừ (khi update)"
-    )
+    exclude_showtime_id: UUID | None = None
 
     @model_validator(mode='after')
     def validate_time_range(self) -> 'ShowtimeConflictCheck':

@@ -208,6 +208,4 @@ __marimo__/
 
 
 docs/
-alembic/
-tests/
-.agent/
+

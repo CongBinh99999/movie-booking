@@ -1,34 +1,3 @@
-"""Genre router - API endpoints for Genre entity.
-
-TODO: Implement endpoints:
-
-# Genre endpoints (public)
-- GET /api/v1/genres
-  - Response: list[GenreResponse]
-
-- GET /api/v1/genres/{genre_id}
-  - Response: GenreResponse
-
-- GET /api/v1/genres/{genre_id}/movies
-  - Query: skip, limit
-  - Response: PaginatedResponse[MovieResponse]
-
-# Genre admin endpoints
-- POST /api/v1/genres
-  - Dependency: get_current_admin_user
-  - Request: GenreCreate (name)
-  - Response: GenreResponse (201)
-
-- PUT /api/v1/genres/{genre_id}
-  - Dependency: get_current_admin_user
-  - Request: GenreUpdate
-  - Response: GenreResponse
-
-- DELETE /api/v1/genres/{genre_id}
-  - Dependency: get_current_admin_user
-  - Response: 204 No Content
-"""
-
 from fastapi import APIRouter, status
 from uuid import UUID
 from app.modules.auth.dependencies import RequireAdmin
@@ -60,7 +29,6 @@ async def get_genres(
     genres = await service.get_genres()
     items = [GenreResponse.model_validate(g) for g in genres]
 
-    # Apply pagination
     paginated_items = items[skip:skip + limit] if limit > 0 else items
 
     return GenreListResponse(items=paginated_items, total=len(items), page=(skip // limit) + 1 if limit > 0 else 1, size=limit)

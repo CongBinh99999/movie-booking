@@ -1,6 +1,8 @@
 """Showtimes schemas package."""
 from app.modules.showtimes.schemas.domain import (
     ShowtimeDTO,
+    ShowtimeCreate,
+    ShowtimeUpdate,
     ShowtimeWithDetails,
     SeatAvailability,
     ShowtimeWithSeats,
@@ -22,6 +24,8 @@ from app.modules.showtimes.schemas.api import (
 __all__ = [
     # Domain schemas
     "ShowtimeDTO",
+    "ShowtimeCreate",
+    "ShowtimeUpdate",
     "ShowtimeWithDetails",
     "SeatAvailability",
     "ShowtimeWithSeats",

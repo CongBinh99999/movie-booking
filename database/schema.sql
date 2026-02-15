@@ -203,8 +203,11 @@ CREATE TABLE booking_seats (
 CREATE INDEX idx_booking_seats_booking_id ON booking_seats(booking_id);
 CREATE INDEX idx_booking_seats_seat_id ON booking_seats(seat_id);
 
--- Prevent double booking for the same showtime+seat
-CREATE UNIQUE INDEX idx_unique_showtime_seat ON booking_seats(seat_id, booking_id);
+-- NOTE: To truly prevent double booking for same showtime+seat,
+-- the logic should be handled at application level by checking:
+-- 1. Get showtime_id from booking
+-- 2. Check if any active booking for that showtime already has this seat
+-- Adding showtime_id to booking_seats would require schema redesign.
 
 -- ============================================
 -- MODULE: PAYMENTS
@@ -280,3 +283,158 @@ INSERT INTO genres (name, slug) VALUES
     ('Tâm lý', 'tam-ly'),
     ('Hình sự', 'hinh-su'),
     ('Gia đình', 'gia-dinh');
+
+-- ============================================
+-- SAMPLE DATA: Movies
+-- ============================================
+
+INSERT INTO movies (title, original_title, description, duration_minutes, release_date, end_date, poster_url, trailer_url, director, cast_members, language, subtitle, age_rating, is_active) VALUES
+    ('Avengers: Endgame', 
+     'Avengers: Endgame', 
+     'Sau sự tàn phá của Thanos, các siêu anh hùng còn sống tập hợp lại để thực hiện sứ mệnh cuối cùng nhằm khôi phục lại vũ trụ.',
+     181, 
+     '2026-01-15', 
+     '2026-03-15', 
+     'https://example.com/posters/avengers-endgame.jpg',
+     'https://youtube.com/watch?v=avengers-endgame',
+     'Anthony Russo, Joe Russo',
+     ARRAY['Robert Downey Jr.', 'Chris Evans', 'Scarlett Johansson', 'Chris Hemsworth'],
+     'Tiếng Anh',
+     'Tiếng Việt',
+     'C13',
+     TRUE),
+    
+    ('Mai', 
+     'Mai', 
+     'Câu chuyện về Mai - một cô gái xinh đẹp sống ở Sài Gòn, làm nghề massage và đang tìm kiếm tình yêu đích thực.',
+     130, 
+     '2026-02-01', 
+     '2026-04-01', 
+     'https://example.com/posters/mai.jpg',
+     'https://youtube.com/watch?v=mai-movie',
+     'Trấn Thành',
+     ARRAY['Phương Anh Đào', 'Tuấn Trần', 'Hồng Đào', 'NSND Việt Anh'],
+     'Tiếng Việt',
+     NULL,
+     'C16',
+     TRUE),
+    
+    ('Quỷ Cẩu', 
+     'Quỷ Cẩu', 
+     'Phim kinh dị Việt Nam về câu chuyện ma quái trong một ngôi làng hẻo lánh.',
+     105, 
+     '2026-01-20', 
+     '2026-03-20', 
+     'https://example.com/posters/quy-cau.jpg',
+     'https://youtube.com/watch?v=quy-cau',
+     'Lưu Thành Luân',
+     ARRAY['Quốc Trường', 'Kim Tuyến', 'Mai Tài Phến'],
+     'Tiếng Việt',
+     NULL,
+     'C18',
+     TRUE),
+    
+    ('Frozen II', 
+     'Frozen II', 
+     'Elsa và Anna cùng các bạn đồng hành lên đường đến một khu rừng phía Bắc để khám phá bí ẩn về sức mạnh của Elsa.',
+     103, 
+     '2026-02-10', 
+     '2026-04-10', 
+     'https://example.com/posters/frozen-2.jpg',
+     'https://youtube.com/watch?v=frozen-2',
+     'Chris Buck, Jennifer Lee',
+     ARRAY['Idina Menzel', 'Kristen Bell', 'Josh Gad'],
+     'Tiếng Anh',
+     'Tiếng Việt',
+     'P',
+     TRUE),
+    
+    ('Oppenheimer', 
+     'Oppenheimer', 
+     'Câu chuyện về J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử.',
+     180, 
+     '2026-01-25', 
+     '2026-03-25', 
+     'https://example.com/posters/oppenheimer.jpg',
+     'https://youtube.com/watch?v=oppenheimer',
+     'Christopher Nolan',
+     ARRAY['Cillian Murphy', 'Emily Blunt', 'Matt Damon', 'Robert Downey Jr.'],
+     'Tiếng Anh',
+     'Tiếng Việt',
+     'C16',
+     TRUE);
+
+-- ============================================
+-- SAMPLE DATA: Movie-Genre Relationships
+-- Sử dụng subquery để tham chiếu ID qua title/slug
+-- ============================================
+
+-- Avengers: Endgame - Hành động, Khoa học viễn tưởng, Phiêu lưu
+INSERT INTO movie_genres (movie_id, genre_id)
+SELECT m.id, g.id FROM movies m, genres g
+WHERE m.title = 'Avengers: Endgame' AND g.slug IN ('hanh-dong', 'khoa-hoc-vien-tuong', 'phieu-luu');
+
+-- Mai - Tình cảm, Tâm lý
+INSERT INTO movie_genres (movie_id, genre_id)
+SELECT m.id, g.id FROM movies m, genres g
+WHERE m.title = 'Mai' AND g.slug IN ('tinh-cam', 'tam-ly');
+
+-- Quỷ Cẩu - Kinh dị, Tâm lý
+INSERT INTO movie_genres (movie_id, genre_id)
+SELECT m.id, g.id FROM movies m, genres g
+WHERE m.title = 'Quỷ Cẩu' AND g.slug IN ('kinh-di', 'tam-ly');
+
+-- Frozen II - Hoạt hình, Gia đình, Phiêu lưu
+INSERT INTO movie_genres (movie_id, genre_id)
+SELECT m.id, g.id FROM movies m, genres g
+WHERE m.title = 'Frozen II' AND g.slug IN ('hoat-hinh', 'gia-dinh', 'phieu-luu');
+
+-- Oppenheimer - Tâm lý, Hình sự
+INSERT INTO movie_genres (movie_id, genre_id)
+SELECT m.id, g.id FROM movies m, genres g
+WHERE m.title = 'Oppenheimer' AND g.slug IN ('tam-ly', 'hinh-su');
+
+-- ============================================
+-- SAMPLE DATA: Cinemas
+-- ============================================
+
+INSERT INTO cinemas (name, address, city, district, phone, email, description, is_active) VALUES
+    ('CGV Vincom Center',
+     'Tầng 5, TTTM Vincom Center, 72 Lê Thánh Tôn',
+     'Hồ Chí Minh',
+     'Quận 1',
+     '1900 6017',
+     'cgv.vincom@cgv.vn',
+     'Rạp phim hiện đại với công nghệ 4DX và IMAX',
+     TRUE),
+    
+    ('Lotte Cinema Landmark 81',
+     'Tầng B1, TTTM Vincom Center Landmark 81, 772 Điện Biên Phủ',
+     'Hồ Chí Minh',
+     'Bình Thạnh',
+     '1900 6085',
+     'lotte.landmark@lotte.vn',
+     'Rạp phim cao cấp tại tòa nhà cao nhất Việt Nam',
+     TRUE);
+
+-- ============================================
+-- SAMPLE DATA: Rooms
+-- Sử dụng subquery để tham chiếu cinema_id
+-- ============================================
+
+INSERT INTO rooms (cinema_id, name, room_type, total_rows, seats_per_row, total_seats, is_active)
+SELECT id, 'Phòng 1', '2D', 10, 12, 120, TRUE
+FROM cinemas WHERE name = 'CGV Vincom Center';
+
+INSERT INTO rooms (cinema_id, name, room_type, total_rows, seats_per_row, total_seats, is_active)
+SELECT id, 'Phòng IMAX', 'IMAX', 15, 20, 300, TRUE
+FROM cinemas WHERE name = 'CGV Vincom Center';
+
+INSERT INTO rooms (cinema_id, name, room_type, total_rows, seats_per_row, total_seats, is_active)
+SELECT id, 'Phòng 1', '2D', 8, 10, 80, TRUE
+FROM cinemas WHERE name = 'Lotte Cinema Landmark 81';
+
+INSERT INTO rooms (cinema_id, name, room_type, total_rows, seats_per_row, total_seats, is_active)
+SELECT id, 'Phòng 4DX', '4DX', 6, 8, 48, TRUE
+FROM cinemas WHERE name = 'Lotte Cinema Landmark 81';
+

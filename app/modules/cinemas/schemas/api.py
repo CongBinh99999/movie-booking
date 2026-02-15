@@ -13,10 +13,17 @@ from app.shared.schemas.pagination import PaginationResponse
 from app.modules.cinemas.models import SeatType
 from app.modules.cinemas.schemas.domain import SeatPattern
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, field_validator
 from decimal import Decimal
 from uuid import UUID
 from datetime import datetime
+import re
+
+# -- Constants --
+PHONE_PATTERN = re.compile(r'^[+\d][\d\s\-]{6,19}$')
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+MAX_TOTAL_ROWS = 30
+MAX_SEATS_PER_ROW = 50
 
 
 class CinemaCreateRequest(BaseRequest):
@@ -42,8 +49,32 @@ class CinemaCreateRequest(BaseRequest):
     email: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None)
     image_url: str | None = Field(default=None, max_length=500)
-    latitude: Decimal
-    longitude: Decimal
+    latitude: Decimal = Field(..., ge=-90, le=90)
+    longitude: Decimal = Field(..., ge=-180, le=180)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_empty(cls, value: str) -> str:
+        """Tên rạp không được là chuỗi rỗng hoặc chỉ chứa whitespace."""
+        if value.strip() == "":
+            raise ValueError("Tên rạp không được là chuỗi rỗng")
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, value: str | None) -> str | None:
+        """Validate email format."""
+        if value is not None and not EMAIL_PATTERN.match(value):
+            raise ValueError("Email không hợp lệ")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone_format(cls, value: str | None) -> str | None:
+        """Phone chỉ chứa số, dấu +, dấu -, khoảng trắng."""
+        if value is not None and not PHONE_PATTERN.match(value):
+            raise ValueError("Số điện thoại không hợp lệ")
+        return value
 
 
 class CinemaUpdateRequest(BaseRequest):
@@ -60,8 +91,32 @@ class CinemaUpdateRequest(BaseRequest):
     email: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None)
     image_url: str | None = Field(default=None, max_length=500)
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    latitude: Decimal | None = Field(default=None, ge=-90, le=90)
+    longitude: Decimal | None = Field(default=None, ge=-180, le=180)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_empty(cls, value: str | None) -> str | None:
+        """Tên rạp không được là chuỗi rỗng hoặc chỉ chứa whitespace."""
+        if value is not None and value.strip() == "":
+            raise ValueError("Tên rạp không được là chuỗi rỗng")
+        return value
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, value: str | None) -> str | None:
+        """Validate email format."""
+        if value is not None and not EMAIL_PATTERN.match(value):
+            raise ValueError("Email không hợp lệ")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone_format(cls, value: str | None) -> str | None:
+        """Phone chỉ chứa số, dấu +, dấu -, khoảng trắng."""
+        if value is not None and not PHONE_PATTERN.match(value):
+            raise ValueError("Số điện thoại không hợp lệ")
+        return value
 
 
 class CinemaSearchRequest(BaseRequest):
@@ -168,8 +223,8 @@ class RoomCreateRequest(BaseRequest):
     """
     name: str = Field(..., max_length=100)
     room_type: str = Field(..., max_length=50)
-    total_rows: int = Field(..., gt=0)
-    seats_per_row: int = Field(..., gt=0)
+    total_rows: int = Field(..., gt=0, le=MAX_TOTAL_ROWS)
+    seats_per_row: int = Field(..., gt=0, le=MAX_SEATS_PER_ROW)
 
     patterns: list[SeatPattern] | None = Field(
         default=None,
@@ -250,9 +305,8 @@ class SeatCreateRequest(BaseRequest):
     seat_type: SeatType = Field(default=SeatType.STANDARD)
     price_multiplier: Decimal = Field(
         default=Decimal("1.00"),
-        ge=1.00,
-        le=3.00,
-        description="Hệ số giá (1.0 = chuẩn, 1.5 = VIP)"
+        ge=Decimal("1.00"),
+        le=Decimal("3.00"),
     )
 
 
@@ -267,7 +321,8 @@ class SeatUpdateRequest(BaseRequest):
         is_active: Ghế còn hoạt động không.
     """
     seat_type: SeatType | None = None
-    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+    price_multiplier: Decimal | None = Field(
+        default=None, ge=Decimal("1.00"), le=Decimal("3.00"))
     is_active: bool | None = None
 
 
@@ -332,7 +387,8 @@ class BulkSeatUpdateRequest(BaseRequest):
     """
     seat_ids: list[UUID] = Field(..., min_length=1, max_length=500)
     seat_type: SeatType | None = None
-    price_multiplier: Decimal | None = Field(default=None, ge=1.0, le=3.0)
+    price_multiplier: Decimal | None = Field(
+        default=None, ge=Decimal("1.00"), le=Decimal("3.00"))
 
 
 class RoomWithSeatsResponse(RoomResponse):

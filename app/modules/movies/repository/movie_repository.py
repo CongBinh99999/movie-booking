@@ -11,13 +11,17 @@ from app.modules.movies.schemas.domain import MovieCreate, MovieUpdate, MovieSea
 from app.shared.dependencies import DbSession
 from app.modules.movies.models import Movies, MovieGenres
 from app.modules.cinemas.models import Rooms, Cinemas
-from app.modules.showtimes.models import Showtimes
+
+
+def _get_showtimes_model():
+    """Lazy import để tránh circular dependency: showtimes.service → movie_repository → Showtimes."""
+    from app.modules.showtimes.models import Showtimes
+    return Showtimes
 
 
 class MovieRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
-
 
     async def get_by_id(self, movie_id: UUID) -> Movies | None:
         result = await self.db.execute(
@@ -27,7 +31,6 @@ class MovieRepository:
 
         return result.scalar_one_or_none()
 
-
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[Movies]:
         result = await self.db.execute(
             select(Movies)
@@ -36,7 +39,6 @@ class MovieRepository:
         )
 
         return list(result.scalars().all())
-
 
     async def create(self, movie_data: MovieCreate) -> Movies:
         movie = Movies(
@@ -61,7 +63,6 @@ class MovieRepository:
 
         return movie
 
-
     async def update(self, movie: Movies, movie_data: MovieUpdate) -> Movies:
         data = movie_data.model_dump(exclude_unset=True)
 
@@ -73,7 +74,6 @@ class MovieRepository:
 
         return movie
 
-
     async def delete(self, movie_id: UUID) -> bool:
         movie = await self.get_by_id(movie_id=movie_id)
         if movie is None:
@@ -83,7 +83,6 @@ class MovieRepository:
         await self.db.flush()
 
         return True
-
 
     async def get_active(self, skip: int = 0, limit: int = 100) -> list[Movies]:
         result = await self.db.execute(
@@ -95,11 +94,10 @@ class MovieRepository:
 
         return list(result.scalars().all())
 
-
     async def get_now_showing(self, cinema_id: UUID | None = None,  skip: int = 0, limit: int = 50) -> list[Movies]:
         today = date.today()
-        
-        query = ( 
+
+        query = (
             select(Movies)
             .where(
                 and_(
@@ -112,7 +110,8 @@ class MovieRepository:
                 )
             )
         )
-        if cinema_id: 
+        if cinema_id:
+            Showtimes = _get_showtimes_model()
             query = (
                 query
                 .join(Showtimes, Showtimes.movie_id == Movies.id)
@@ -128,10 +127,9 @@ class MovieRepository:
 
         return list(result.scalars().all())
 
-
     async def get_coming_soon(self, cinema_id: UUID | None = None, skip: int = 0, limit: int = 50) -> list[Movies]:
         today = date.today()
-        
+
         query = (
             select(Movies)
             .where(
@@ -144,7 +142,8 @@ class MovieRepository:
             .limit(limit)
         )
 
-        if cinema_id: 
+        if cinema_id:
+            Showtimes = _get_showtimes_model()
             query = (
                 query
                 .join(Showtimes, Showtimes.movie_id == Movies.id)
@@ -160,8 +159,6 @@ class MovieRepository:
 
         return list(result.scalars().all())
 
-
-
     async def get_by_genre(self, genre_id: UUID, skip: int = 0, limit: int = 50) -> list[Movies]:
         result = await self.db.execute(
             select(Movies)
@@ -172,7 +169,6 @@ class MovieRepository:
         )
 
         return list(result.scalars().all())
-
 
     async def count(self) -> int:
         result = await self.db.execute(
@@ -187,7 +183,6 @@ class MovieRepository:
 
         return count
 
-
     async def _update_active_status(self, movie_id: UUID, status: bool) -> Movies | None:
         query = (
             update(Movies)
@@ -199,14 +194,11 @@ class MovieRepository:
 
         return result.scalars().one_or_none()
 
-
     async def activate(self, movie_id: UUID) -> Movies | None:
         return await self._update_active_status(movie_id, True)
 
-
     async def deactivate(self, movie_id: UUID) -> Movies | None:
         return await self._update_active_status(movie_id, False)
-
 
     async def get_by_id_with_genres(self, movie_id: UUID) -> Movies | None:
         result = await self.db.execute(
@@ -216,7 +208,6 @@ class MovieRepository:
         )
 
         return result.scalar_one_or_none()
-
 
     async def get_by_id_with_showtimes(
         self,
@@ -229,7 +220,7 @@ class MovieRepository:
             .where(Movies.id == movie_id)
             .options(
                 selectinload(Movies.showtimes)
-                .selectinload(Showtimes.room)
+                .selectinload(_get_showtimes_model().room)
                 .selectinload(Rooms.cinema)
             )
         )
@@ -248,7 +239,6 @@ class MovieRepository:
 
         return movie
 
-
     async def exists_by_title(self, title: str) -> bool:
         result = await self.db.execute(
             select(Movies)
@@ -257,35 +247,37 @@ class MovieRepository:
         )
 
         return result.scalar_one_or_none() is not None
-    
 
     def _apply_search_criteria(self, query, criteria: MovieSearchCriteria):
         if criteria.title:
             search_term = criteria.title.strip().replace("%", "\\%").replace("_", "\\_")
             query = query.where(col(Movies.title).ilike(f"%{search_term}%"))
-        
+
         if criteria.original_title:
-            search_term = criteria.original_title.strip().replace("%", "\\%").replace("_", "\\_")
-            query = query.where(col(Movies.original_title).ilike(f"%{search_term}%"))
-            
+            search_term = criteria.original_title.strip().replace(
+                "%", "\\%").replace("_", "\\_")
+            query = query.where(
+                col(Movies.original_title).ilike(f"%{search_term}%"))
+
         if criteria.release_date:
             query = query.where(Movies.release_date == criteria.release_date)
-        
-        if criteria.is_active is not None: 
+
+        if criteria.is_active is not None:
             query = query.where(Movies.is_active == criteria.is_active)
 
-        if criteria.genre_ids: 
+        if criteria.genre_ids:
             query = query.join(MovieGenres, Movies.id == MovieGenres.movie_id)
-            query = query.where(col(MovieGenres.genre_id).in_(criteria.genre_ids))
-        
-        return query.distinct()
+            query = query.where(
+                col(MovieGenres.genre_id).in_(criteria.genre_ids))
 
+        return query.distinct()
 
     async def search_movies(self, criteria: MovieSearchCriteria, skip: int = 0, limit: int = 50) -> tuple[list[Movies], int]:
         query = select(Movies).offset(skip).limit(limit)
         query = self._apply_search_criteria(query, criteria)
-        
-        count_query = select(func.count(func.distinct(Movies.id))).select_from(Movies)
+
+        count_query = select(func.count(
+            func.distinct(Movies.id))).select_from(Movies)
         count_query = self._apply_search_criteria(count_query, criteria)
 
         result = await self.db.execute(query)
@@ -296,32 +288,32 @@ class MovieRepository:
 
         return movies, total_count
 
-
     async def get_showtimes_for_movie(
-            self, movie_id: UUID, 
-            cinema_id: UUID | None = None, 
-            filter_date: date | None = None, 
-            skip: int = 0, 
+            self, movie_id: UUID,
+            cinema_id: UUID | None = None,
+            filter_date: date | None = None,
+            skip: int = 0,
             limit: int = 100
-    ) -> list[Showtimes]: 
+    ) -> list:
+        Showtimes = _get_showtimes_model()
         query = (
             select(Showtimes)
             .where(Showtimes.movie_id == movie_id)
             .options(
-                selectinload(Showtimes.movie), 
+                selectinload(Showtimes.movie),
                 selectinload(Showtimes.room).selectinload(Rooms.cinema)
             )
             .order_by(Showtimes.start_time)
         )
 
-        if cinema_id: 
+        if cinema_id:
             query = (
                 query
                 .join(Rooms, Showtimes.room_id == Rooms.id)
                 .where(Rooms.cinema_id == cinema_id)
             )
 
-        if filter_date: 
+        if filter_date:
             query = query.where(func.date(Showtimes.start_time) == filter_date)
 
         query = query.offset(skip).limit(limit)
