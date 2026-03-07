@@ -16,7 +16,7 @@ from pydantic import Field
 
 class PaymentDTO(BaseSchema):
     """Schema đầy đủ cho Payment (thanh toán).
-    
+
     Attributes:
         id: ID duy nhất của payment.
         booking_id: ID booking liên quan.
@@ -47,11 +47,29 @@ class PaymentDTO(BaseSchema):
     updated_at: datetime
 
 
+class PaymentCreate(BaseSchema):
+    """Schema tạo mới payment."""
+    booking_id: UUID
+    amount: Decimal
+    payment_method: PaymentMethod
+
+
+class PaymentUpdate(BaseSchema):
+    """Schema cập nhật payment."""
+    status: PaymentStatus | None = None
+    transaction_id: str | None = None
+    payment_url: str | None = None
+    callback_data: dict[str, Any] | None = None
+    paid_at: datetime | None = None
+    failed_at: datetime | None = None
+    failure_reason: str | None = None
+
+
 class PaymentWithBooking(PaymentDTO):
     """Payment kèm thông tin booking.
-    
+
     Dùng khi cần hiển thị payment cùng thông tin booking liên quan.
-    
+
     Attributes:
         booking: Thông tin cơ bản về booking.
     """
@@ -60,9 +78,9 @@ class PaymentWithBooking(PaymentDTO):
 
 class PaymentSearchCriteria(BaseSchema):
     """Tiêu chí tìm kiếm payment.
-    
+
     Dùng trong service layer để filter payments.
-    
+
     Attributes:
         booking_id: Lọc theo booking.
         status: Lọc theo trạng thái thanh toán.
@@ -72,19 +90,22 @@ class PaymentSearchCriteria(BaseSchema):
         date_to: Lọc đến ngày.
     """
     booking_id: UUID | None = Field(None, description="Lọc theo booking")
-    status: PaymentStatus | None = Field(None, description="Lọc theo trạng thái")
-    payment_method: PaymentMethod | None = Field(None, description="Lọc theo phương thức")
-    transaction_id: str | None = Field(None, description="Tìm theo mã giao dịch")
+    status: PaymentStatus | None = Field(
+        None, description="Lọc theo trạng thái")
+    payment_method: PaymentMethod | None = Field(
+        None, description="Lọc theo phương thức")
+    transaction_id: str | None = Field(
+        None, description="Tìm theo mã giao dịch")
     date_from: datetime | None = Field(None, description="Từ ngày")
     date_to: datetime | None = Field(None, description="Đến ngày")
 
 
 class PaymentStatusUpdate(BaseSchema):
     """Schema cập nhật trạng thái payment.
-    
+
     Dùng trong service layer để cập nhật payment sau khi
     nhận callback từ cổng thanh toán.
-    
+
     Attributes:
         payment_id: ID payment cần cập nhật.
         new_status: Trạng thái mới.
@@ -101,9 +122,9 @@ class PaymentStatusUpdate(BaseSchema):
 
 class VNPayCallbackData(BaseSchema):
     """Schema cho callback từ VNPay.
-    
+
     Parse dữ liệu callback từ VNPay sau khi user thanh toán.
-    
+
     Attributes:
         vnp_TmnCode: Mã website merchant.
         vnp_Amount: Số tiền × 100 (VNPay format).
@@ -121,11 +142,13 @@ class VNPayCallbackData(BaseSchema):
     vnp_TmnCode: str = Field(..., description="Mã website merchant")
     vnp_Amount: int = Field(..., description="Số tiền * 100")
     vnp_BankCode: str | None = Field(None, description="Mã ngân hàng")
-    vnp_BankTranNo: str | None = Field(None, description="Mã giao dịch ngân hàng")
+    vnp_BankTranNo: str | None = Field(
+        None, description="Mã giao dịch ngân hàng")
     vnp_CardType: str | None = Field(None, description="Loại thẻ")
     vnp_PayDate: str | None = Field(None, description="Thời gian thanh toán")
     vnp_OrderInfo: str = Field(..., description="Thông tin đơn hàng")
-    vnp_TransactionNo: str | None = Field(None, description="Mã giao dịch VNPay")
+    vnp_TransactionNo: str | None = Field(
+        None, description="Mã giao dịch VNPay")
     vnp_ResponseCode: str = Field(..., description="Mã phản hồi")
     vnp_TransactionStatus: str = Field(..., description="Trạng thái giao dịch")
     vnp_TxnRef: str = Field(..., description="Mã đơn hàng merchant")
@@ -134,9 +157,9 @@ class VNPayCallbackData(BaseSchema):
 
 class MomoCallbackData(BaseSchema):
     """Schema cho callback từ Momo.
-    
+
     Parse dữ liệu callback từ Momo sau khi user thanh toán.
-    
+
     Attributes:
         partnerCode: Mã đối tác.
         orderId: Mã đơn hàng.
@@ -162,16 +185,17 @@ class MomoCallbackData(BaseSchema):
     resultCode: int = Field(..., description="Mã kết quả")
     message: str = Field(..., description="Thông điệp")
     payType: str = Field(..., description="Phương thức thanh toán")
-    responseTime: int = Field(..., description="Thời gian phản hồi (timestamp)")
+    responseTime: int = Field(...,
+                              description="Thời gian phản hồi (timestamp)")
     extraData: str | None = Field(None, description="Dữ liệu thêm")
     signature: str = Field(..., description="Chữ ký")
 
 
 class PaymentResult(BaseSchema):
     """Kết quả xử lý thanh toán.
-    
+
     Trả về sau khi service xử lý callback từ cổng thanh toán.
-    
+
     Attributes:
         success: Thanh toán thành công không.
         payment_id: ID payment (nếu có).

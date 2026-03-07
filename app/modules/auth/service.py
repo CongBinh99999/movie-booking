@@ -33,15 +33,12 @@ from app.modules.auth.token_repository import (
     TokenRepository
 )
 
-import logging
 from typing import Annotated
 from fastapi import Depends
 from datetime import datetime
 from uuid import UUID
 from jose import JWTError
 from jose.exceptions import ExpiredSignatureError
-
-logger = logging.getLogger(__name__)
 
 
 class AuthService:

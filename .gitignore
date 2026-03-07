@@ -209,3 +209,9 @@ __marimo__/
 
 docs/
 
+# Project-specific exclusions
+tests/
+scripts/
+alembic/
+.agent/
+

@@ -1,6 +1,7 @@
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, timezone
+from enum import Enum
 
 from pydantic import Field, computed_field
 
@@ -16,10 +17,27 @@ from app.shared.schemas.nested import (
 from app.modules.bookings.models import BookingStatus
 
 
-class CreateBookingInput(BaseSchema):
+class SeatStatus(str, Enum):
+    """Trạng thái ghế cho seat availability endpoint."""
+    AVAILABLE = "available"
+    BOOKED = "booked"
+    LOCKED = "locked"
+
+
+class BookingCreate(BaseSchema):
+    """Schema tạo Booking."""
     user_id: UUID
     showtime_id: UUID
     seat_ids: list[UUID]
+
+
+class BookingUpdate(BaseSchema):
+    """Schema cập nhật Booking."""
+    status: BookingStatus | None = None
+    total_amount: Decimal | None = None
+    confirmed_at: datetime | None = None
+    cancelled_at: datetime | None = None
+    cancellation_reason: str | None = None
 
 
 class BookingSeatInput(BaseSchema):
@@ -38,6 +56,11 @@ class SeatWithPrice(SeatBasic):
     base_price: Decimal
     price_multiplier: Decimal
     final_price: Decimal
+
+
+class SeatAvailabilityInfo(SeatWithPrice):
+    """Ghế kèm trạng thái availability."""
+    status: SeatStatus = SeatStatus.AVAILABLE
 
 
 class BookingCalculation(BaseSchema):

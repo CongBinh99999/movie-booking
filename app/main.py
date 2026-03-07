@@ -9,7 +9,9 @@ from app.core.config import get_setting
 from app.shared.exceptions import AppException
 
 from app.modules.auth.router import router as auth_router
-from app.modules.bookings.router import booking_router
+from app.modules.bookings.router import (
+    booking_router, booking_seat_router, admin_booking_router,
+)
 from app.modules.cinemas.router import (
     cinema_router, room_router, seat_router,
     cinema_rooms_router, room_seats_router,
@@ -78,6 +80,8 @@ app.include_router(room_seats_router, prefix="/api/v1")
 
 # Bookings
 app.include_router(booking_router, prefix="/api/v1")
+app.include_router(booking_seat_router, prefix="/api/v1")
+app.include_router(admin_booking_router, prefix="/api/v1")
 
 # Showtimes
 app.include_router(showtimes_router, prefix="/api/v1")
