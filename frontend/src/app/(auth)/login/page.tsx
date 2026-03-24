@@ -11,7 +11,7 @@ import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/auth.store";
 
 const loginSchema = z.object({
-    email: z.string().email("Email không hợp lệ"),
+    username: z.string().min(3, "Username phải có ít nhất 3 ký tự"),
     password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 
@@ -34,8 +34,9 @@ export default function LoginPage() {
     const onSubmit = async (data: LoginFormData) => {
         setServerError("");
         try {
-            const tokenResponse = await authService.login(data);
-            // After login, fetch user info
+            const tokenResponse = await authService.login({ username: data.username, password: data.password });
+            // Store token first so getMe can use it via interceptor
+            localStorage.setItem("access_token", tokenResponse.access_token);
             const user = await authService.getMe();
             setAuth(user, tokenResponse.access_token);
             router.push("/");
@@ -65,19 +66,19 @@ export default function LoginPage() {
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                Email
+                            <label htmlFor="username" className="block text-sm font-medium text-[#8888aa] mb-1.5">
+                                Username
                             </label>
                             <input
-                                id="email"
-                                type="email"
-                                autoComplete="email"
-                                placeholder="email@example.com"
-                                {...register("email")}
+                                id="username"
+                                type="text"
+                                autoComplete="username"
+                                placeholder="username"
+                                {...register("username")}
                                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm"
                             />
-                            {errors.email && (
-                                <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
+                            {errors.username && (
+                                <p className="text-red-400 text-xs mt-1">{errors.username.message}</p>
                             )}
                         </div>
 

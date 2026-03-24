@@ -7,8 +7,8 @@ export const bookingService = {
         return response.data;
     },
 
-    getMyBookings: async (): Promise<PaginatedResponse<Booking>> => {
-        const response = await apiClient.get<PaginatedResponse<Booking>>("/bookings/me");
+    getMyBookings: async (page = 1, size = 20): Promise<PaginatedResponse<Booking>> => {
+        const response = await apiClient.get<PaginatedResponse<Booking>>("/bookings", { params: { page, size } });
         return response.data;
     },
 
@@ -17,13 +17,8 @@ export const bookingService = {
         return response.data;
     },
 
-    cancelBooking: async (id: string): Promise<Booking> => {
-        const response = await apiClient.patch<Booking>(`/bookings/${id}/cancel`);
-        return response.data;
-    },
-
-    confirmBooking: async (id: string): Promise<Booking> => {
-        const response = await apiClient.patch<Booking>(`/bookings/${id}/confirm`);
+    cancelBooking: async (id: string, reason?: string): Promise<Booking> => {
+        const response = await apiClient.post<Booking>(`/bookings/${id}/cancel`, reason ? { cancellation_reason: reason } : undefined);
         return response.data;
     },
 };

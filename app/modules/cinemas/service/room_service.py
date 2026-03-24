@@ -121,6 +121,13 @@ class RoomService:
         if room is None:
             raise RoomNotFoundError(room_id)
 
+        # Kiểm tra trùng tên nếu name được cập nhật
+        if data.name is not None and data.name != room.name:
+            if await self.room_repo.exists_by_name_in_cinema(
+                room.cinema_id, data.name, excluded_room_id=room_id
+            ):
+                raise RoomAlreadyExistsError(data.name)
+
         room = await self.room_repo.update(room, data)
 
         return RoomDTO.model_validate(room)

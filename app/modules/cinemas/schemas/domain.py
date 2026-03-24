@@ -226,6 +226,7 @@ class RoomWithSeats(BaseSchema):
 
 
 class CinemaWithRooms(BaseSchema):
+    id: UUID
     name: str = Field(..., max_length=255)
     address: str
     city: str = Field(..., max_length=100)
@@ -234,9 +235,11 @@ class CinemaWithRooms(BaseSchema):
     email: str | None = None
     description: str | None = None
     image_url: str | None = None
-    latitude: Decimal
-    longitude: Decimal
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
     is_active: bool = Field(default=True)
+    created_at: datetime
+    updated_at: datetime
     rooms: list[RoomDTO] = Field(
         default_factory=list,
         description="Danh sách tất cả phòng trong rạp"

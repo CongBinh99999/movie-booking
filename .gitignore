@@ -215,3 +215,4 @@ scripts/
 alembic/
 .agent/
 
+.claude/

@@ -10,15 +10,16 @@ export interface User {
 }
 
 export interface LoginCredentials {
-    email: string;
+    username: string;
     password: string;
 }
 
 export interface RegisterData {
     email: string;
+    username: string;
     password: string;
-    full_name: string;
-    phone_number?: string;
+    confirmed_password: string;
+    full_name?: string;
 }
 
 export interface TokenResponse {
@@ -93,14 +94,18 @@ export interface BookingSeat {
 
 export interface Booking {
     id: string;
-    user_id: string;
-    showtime_id: string;
+    user_id?: string;
+    showtime_id?: string;
+    booking_code: string;
     status: BookingStatus;
-    total_price: number;
-    created_at: string;
-    expires_at: string;
+    total_amount: number;
+    created_at?: string;
+    expires_at?: string;
+    confirmed_at?: string;
+    cancelled_at?: string;
+    cancellation_reason?: string;
     showtime?: Showtime;
-    seats: BookingSeat[];
+    seats?: BookingSeat[];
 }
 
 export interface CreateBookingData {

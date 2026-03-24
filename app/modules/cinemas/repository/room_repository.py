@@ -261,17 +261,20 @@ class RoomRepository:
         result = await self.db.execute(query)
         return result.unique().scalar_one_or_none()
 
-    async def exists_by_name_in_cinema(self, cinema_id: UUID, name: str) -> bool:
+    async def exists_by_name_in_cinema(
+        self, cinema_id: UUID, name: str, excluded_room_id: UUID | None = None
+    ) -> bool:
         """Kiểm tra phòng đã tồn tại trong cinema (case-insensitive).
 
         Args:
             cinema_id: UUID của cinema.
             name: Tên phòng cần kiểm tra.
+            excluded_room_id: UUID phòng cần loại trừ (dùng khi update).
 
         Returns:
             True nếu đã tồn tại, False nếu chưa.
         """
-        result = await self.db.execute(
+        query = (
             select(func.count(Rooms.id))
             .where(
                 and_(
@@ -280,6 +283,11 @@ class RoomRepository:
                 )
             )
         )
+
+        if excluded_room_id is not None:
+            query = query.where(Rooms.id != excluded_room_id)
+
+        result = await self.db.execute(query)
 
         count = result.scalar_one()
         return count > 0

@@ -11,10 +11,20 @@ import { authService } from "@/services/auth.service";
 
 const registerSchema = z
     .object({
-        full_name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
+        full_name: z.string().min(2, "Tên phải có ít nhất 2 ký tự").optional().or(z.literal("")),
+        username: z
+            .string()
+            .min(3, "Username phải có ít nhất 3 ký tự")
+            .max(100, "Username tối đa 100 ký tự")
+            .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, "Username phải bắt đầu bằng chữ cái, chỉ chứa chữ, số và _"),
         email: z.string().email("Email không hợp lệ"),
-        phone_number: z.string().optional(),
-        password: z.string().min(8, "Mật khẩu phải có ít nhất 8 ký tự"),
+        password: z
+            .string()
+            .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+            .regex(/[A-Z]/, "Phải chứa ít nhất một chữ hoa")
+            .regex(/[a-z]/, "Phải chứa ít nhất một chữ thường")
+            .regex(/[0-9]/, "Phải chứa ít nhất một số")
+            .regex(/[!@#$%^&*(),.?":{}|<>]/, "Phải chứa ít nhất một ký tự đặc biệt"),
         confirmPassword: z.string(),
     })
     .refine((data) => data.password === data.confirmPassword, {
@@ -41,21 +51,22 @@ export default function RegisterPage() {
         setServerError("");
         try {
             await authService.register({
-                full_name: data.full_name,
+                username: data.username,
                 email: data.email,
                 password: data.password,
-                phone_number: data.phone_number,
+                confirmed_password: data.confirmPassword,
+                full_name: data.full_name || undefined,
             });
             router.push("/login?registered=true");
         } catch {
-            setServerError("Email đã được sử dụng hoặc có lỗi xảy ra.");
+            setServerError("Email hoặc username đã được sử dụng, hoặc có lỗi xảy ra.");
         }
     };
 
     const fields = [
-        { id: "full_name", label: "Họ và tên", type: "text", placeholder: "Nguyễn Văn A", autoComplete: "name" },
+        { id: "full_name", label: "Họ và tên (tùy chọn)", type: "text", placeholder: "Nguyễn Văn A", autoComplete: "name" },
+        { id: "username", label: "Username", type: "text", placeholder: "nguyenvana", autoComplete: "username" },
         { id: "email", label: "Email", type: "email", placeholder: "email@example.com", autoComplete: "email" },
-        { id: "phone_number", label: "Số điện thoại (tùy chọn)", type: "tel", placeholder: "0912345678", autoComplete: "tel" },
     ] as const;
 
     return (

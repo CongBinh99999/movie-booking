@@ -78,7 +78,7 @@ export default function MovieDetailPage() {
                     {/* Info */}
                     <div className="flex-1 pt-8 md:pt-16">
                         <div className="flex flex-wrap gap-2 mb-3">
-                            {movie.genres.map((g) => (
+                            {movie.genres?.map((g) => (
                                 <span key={g.id} className="text-xs px-2.5 py-1 bg-[#e50914]/15 text-[#e50914] rounded-full font-medium">
                                     {g.name}
                                 </span>

@@ -1,12 +1,3 @@
-"""Auth Router - API endpoints cho authentication.
-=== CẦN THÊM SERVICE - Triển khai sau ===
-[ ] PUT  /me                - Cập nhật profile (cần service.update_profile)
-[ ] POST /forgot-password   - Gửi email reset (cần email service)
-[ ] POST /reset-password    - Reset password (cần token + email service)
-[ ] GET  /users             - Admin: list users (cần service.list_users)
-[ ] PUT  /users/{id}/status - Admin: enable/disable (cần service.update_status)
-"""
-
 from fastapi import APIRouter, Depends
 from uuid import UUID
 from fastapi.security import OAuth2PasswordRequestForm

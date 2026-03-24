@@ -14,7 +14,7 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
-    const statusInfo = STATUS_LABELS[movie.status];
+    const statusInfo = STATUS_LABELS[movie.status] ?? { label: "Không rõ", color: "bg-gray-500" };
 
     return (
         <Link
@@ -61,7 +61,7 @@ export function MovieCard({ movie }: MovieCardProps) {
                     <Clock className="w-3 h-3" />
                     <span className="text-xs">{movie.duration} phút</span>
                 </div>
-                {movie.genres.length > 0 && (
+                {movie.genres?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                         {movie.genres.slice(0, 2).map((genre) => (
                             <span
