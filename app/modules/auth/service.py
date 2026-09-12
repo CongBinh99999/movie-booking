@@ -21,6 +21,7 @@ from app.modules.auth.schemas.domain import (
 )
 
 from app.shared.security import (
+    DUMMY_PASSWORD_HASH,
     hash_password,
     verify_password,
     create_refresh_token,
@@ -65,17 +66,19 @@ class AuthService:
 
     async def login(self, username: str, password: str) -> tuple[str, str, datetime]:
         user = await self.auth_repo.get_by_username(username=username)
-        if not user:
-            raise UserNotFoundError()
+
+        # Luôn verify, kể cả khi không có user: cùng một lỗi và cùng thời gian
+        # phản hồi cho username sai lẫn mật khẩu sai, để không dò được tài khoản.
+        valid, _ = verify_password(
+            plain_password=password,
+            hashed_password=user.hashed_password if user else DUMMY_PASSWORD_HASH,
+        )
+
+        if user is None or not valid:
+            raise InvalidCredentialsError()
 
         if not user.is_active:
             raise InactiveUserError()
-
-        valid, new_password = verify_password(
-            plain_password=password, hashed_password=user.hashed_password)
-
-        if not valid:
-            raise InvalidCredentialsError()
 
         refresh_token, _, _ = create_refresh_token(
             subject=str(user.id),
@@ -108,13 +111,22 @@ class AuthService:
             except (ExpiredSignatureError, JWTError):
                 pass
 
-    async def verify_token(self, token: str) -> TokenPayload:
+    async def verify_token(
+        self, token: str, expected_type: str = "access"
+    ) -> TokenPayload:
         try:
             payload = decode_token(token)
         except ExpiredSignatureError:
             raise TokenExpiredError()
         except JWTError:
             raise InvalidTokenError()
+
+        # Refresh token sống 7 ngày, access token 15 phút. Không chốt loại thì
+        # refresh token dùng thẳng được làm access token ở mọi endpoint.
+        if payload.type != expected_type:
+            raise InvalidTokenError(
+                reason=f"Yêu cầu token loại '{expected_type}'"
+            )
 
         user = await self.auth_repo.get_by_id(payload.sub)
 
@@ -136,13 +148,13 @@ class AuthService:
         return UserDTO.model_validate(user)
 
     async def refresh_token(self, refresh_token: str) -> tuple[str, str, datetime]:
-        try:
-            payload = await self.verify_token(refresh_token)
-        except (TokenExpiredError, TokenRevokedError, InactiveUserError, InvalidTokenError):
-            raise
+        payload = await self.verify_token(refresh_token, expected_type="refresh")
 
-        if payload.type != "refresh":
-            raise InvalidTokenError()
+        # Thu hồi token cũ khi xoay, nếu không một refresh token rò rỉ dùng
+        # được vô hạn suốt 7 ngày.
+        await self.token_repo.blacklist_token(
+            jti=payload.jti, expires_at=payload.exp
+        )
 
         access_token, _, access_expires_at = create_access_token(
             subject=str(payload.sub),
