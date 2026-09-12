@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.shared.database import init_db
 from app.core.config import get_setting
 from app.shared.exceptions import AppException
 
@@ -27,7 +26,6 @@ setting = get_setting()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Khởi động")
-    await init_db()
     yield
     print("Shutdown")
 
