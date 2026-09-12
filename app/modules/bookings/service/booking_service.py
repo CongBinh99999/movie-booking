@@ -30,7 +30,10 @@ from app.modules.bookings.exceptions import (
     InvalidSeatSelectionError,
 )
 from app.modules.showtimes.repository import ShowtimeRepository
-from app.modules.showtimes.exceptions import ShowtimeNotFoundError
+from app.modules.showtimes.exceptions import (
+    ShowtimeNotFoundError,
+    ShowtimeAlreadyStartedError,
+)
 from app.modules.cinemas.repository.seat_repository import SeatRepository
 
 
@@ -117,22 +120,41 @@ class BookingService:
             return
 
         keys = [self._lock_key(showtime_id, sid) for sid in seat_ids]
-        deleted_count = await self.redis.delete(*keys)
+        await self.redis.delete(*keys)
 
-    async def get_locked_seats(self, showtime_id: UUID) -> list[UUID]:
-        """Lấy danh sách seat_id đang bị khóa (Redis SCAN)."""
+    async def get_locked_seats(
+        self,
+        showtime_id: UUID,
+        exclude_user_id: UUID | None = None,
+    ) -> list[UUID]:
+        """Lấy danh sách seat_id đang bị khóa (Redis SCAN).
+
+        ``exclude_user_id`` bỏ qua ghế do chính user đó đang giữ — với họ ghế
+        vẫn chọn được, chỉ người khác mới thấy là đã khóa.
+        """
         pattern = f"{self.LOCK_KEY_PREFIX}:{showtime_id}:seat:*"
-        locked_seat_ids: list[UUID] = []
+        keys: list[str] = []
+        seat_ids: list[UUID] = []
 
         async for key in self.redis.scan_iter(match=pattern, count=100):
             key_str = key if isinstance(key, str) else key.decode("utf-8")
             seat_id_str = key_str.rsplit(":", maxsplit=1)[-1]
             try:
-                locked_seat_ids.append(UUID(seat_id_str))
+                seat_ids.append(UUID(seat_id_str))
             except ValueError:
-                pass
+                continue
+            keys.append(key_str)
 
-        return locked_seat_ids
+        if exclude_user_id is None or not keys:
+            return seat_ids
+
+        owners = await self.redis.mget(keys)
+        exclude = str(exclude_user_id)
+        return [
+            seat_id
+            for seat_id, owner in zip(seat_ids, owners)
+            if owner != exclude
+        ]
 
     async def is_seat_locked(
         self, showtime_id: UUID, seat_id: UUID
@@ -164,7 +186,7 @@ class BookingService:
             start_time = start_time.replace(tzinfo=timezone.utc)
 
         if start_time <= now:
-            raise ShowtimeNotFoundError(showtime_id)
+            raise ShowtimeAlreadyStartedError(showtime_id, start_time)
 
         seats = await self.seat_repo.get_by_ids(seat_ids)
         if len(seats) != len(seat_ids):
@@ -203,21 +225,26 @@ class BookingService:
 
         await self.acquire_seat_locks(showtime_id, seat_ids, user_id)
 
-        calculation = self._calculate_prices(showtime, seats)
+        try:
+            calculation = self._calculate_prices(showtime, seats)
 
-        booking_data = BookingCreate(
-            user_id=user_id,
-            showtime_id=showtime_id,
-            seat_ids=seat_ids,
-        )
+            booking_data = BookingCreate(
+                user_id=user_id,
+                showtime_id=showtime_id,
+                seat_ids=seat_ids,
+            )
 
-        booking = await self.booking_repo.create(
-            booking_data=booking_data,
-            total_amount=calculation.total_amount,
-            seat_prices={
-                sp.id: sp.final_price for sp in calculation.seats
-            },
-        )
+            booking = await self.booking_repo.create(
+                booking_data=booking_data,
+                total_amount=calculation.total_amount,
+                seat_prices={
+                    sp.id: sp.final_price for sp in calculation.seats
+                },
+            )
+        except Exception:
+            # Không trả lock thì ghế treo hết TTL (15 phút) dù booking không tồn tại.
+            await self.release_seat_locks(showtime_id, seat_ids)
+            raise
 
         return BookingDTO.model_validate(booking)
 
@@ -348,7 +375,7 @@ class BookingService:
         return items, total
 
     async def get_available_seats(
-        self, showtime_id: UUID
+        self, showtime_id: UUID, user_id: UUID | None = None
     ) -> list[SeatAvailabilityInfo]:
         """Lấy danh sách ghế kèm trạng thái cho suất chiếu."""
         showtime = await self.showtime_repo.get_by_id(showtime_id)
@@ -366,7 +393,9 @@ class BookingService:
             )
         )
 
-        locked_seat_ids = set(await self.get_locked_seats(showtime_id))
+        locked_seat_ids = set(
+            await self.get_locked_seats(showtime_id, exclude_user_id=user_id)
+        )
 
         base_price = showtime.base_price
         result: list[SeatAvailabilityInfo] = []

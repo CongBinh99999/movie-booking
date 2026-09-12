@@ -3,9 +3,14 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from app.modules.auth.schemas.domain import UserDTO
 from app.modules.auth.exceptions import InsufficientPermissionsError
+from app.shared.exceptions import AppException
 from app.modules.auth.service import AuthServiceDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# auto_error=False: endpoint công khai vẫn chạy được khi không có token.
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login", auto_error=False
+)
 
 
 async def get_current_user(
@@ -16,6 +21,22 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[UserDTO, Depends(get_current_user)]
+
+
+async def get_current_user_optional(
+    token: Annotated[str | None, Depends(oauth2_scheme_optional)],
+    auth_service: AuthServiceDep
+) -> UserDTO | None:
+    """Trả về user nếu có token hợp lệ, None nếu không. Token hỏng cũng trả None."""
+    if not token:
+        return None
+    try:
+        return await auth_service.get_authenticated_user(token)
+    except AppException:
+        return None
+
+
+OptionalCurrentUser = Annotated[UserDTO | None, Depends(get_current_user_optional)]
 
 
 def require_role(required_role: str):

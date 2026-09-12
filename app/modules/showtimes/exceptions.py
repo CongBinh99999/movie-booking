@@ -66,6 +66,24 @@ class ShowtimeInPastError(BadRequestError):
         )
 
 
+class ShowtimeAlreadyStartedError(BadRequestError):
+    """Suất chiếu đã bắt đầu, không đặt vé được nữa."""
+
+    error_code = "SHOWTIME_ALREADY_STARTED"
+
+    def __init__(self, showtime_id: UUID, start_time: datetime) -> None:
+        self.showtime_id = showtime_id
+        self.start_time = start_time
+
+        super().__init__(
+            message="Suất chiếu đã bắt đầu",
+            details={
+                "showtime_id": str(showtime_id),
+                "start_time": start_time.isoformat(),
+            }
+        )
+
+
 class ShowtimeHasBookingsError(BadRequestError):
     """Không thể xóa suất chiếu đã có đặt vé."""
     
