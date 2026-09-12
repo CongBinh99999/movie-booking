@@ -1,5 +1,5 @@
 """Seat router - API endpoints for Seat entity."""
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 from uuid import UUID
 
 from app.modules.cinemas.service.seat_service import SeatServiceDep

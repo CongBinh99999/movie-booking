@@ -8,7 +8,6 @@ from app.shared.schemas.base import (
     BaseRequest
 )
 from app.shared.schemas.pagination import PaginationResponse
-from typing import Literal
 import re
 
 # -- Constants --

@@ -1,5 +1,4 @@
 from uuid import UUID
-from decimal import Decimal
 from typing import Annotated
 from datetime import datetime, timezone
 

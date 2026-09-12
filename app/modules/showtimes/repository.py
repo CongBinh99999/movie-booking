@@ -1,58 +1,17 @@
-"""Showtime repository - data access layer for Showtime entity.
-
-TODO: Implement ShowtimeRepository with methods:
-
-# CRUD cơ bản
-- get_by_id(showtime_id: UUID) -> Showtime | None
-- get_all(skip: int = 0, limit: int = 100) -> list[Showtime]
-- create(data: ShowtimeCreate) -> Showtime
-- update(showtime: Showtime, data: ShowtimeUpdate) -> Showtime
-- delete(showtime_id: UUID) -> bool
-
-# Query methods
-- get_by_movie(movie_id: UUID, skip: int = 0, limit: int = 100) -> list[Showtime]
-- get_by_room(room_id: UUID, skip: int = 0, limit: int = 100) -> list[Showtime]
-- get_by_cinema(cinema_id: UUID, date: date | None = None, skip: int = 0, limit: int = 100) -> list[Showtime]
-- get_by_date(date: date, skip: int = 0, limit: int = 100) -> list[Showtime]
-- get_by_date_range(start_date: date, end_date: date) -> list[Showtime]
-- get_active(skip: int = 0, limit: int = 100) -> list[Showtime]
-- get_upcoming(from_time: datetime | None = None, limit: int = 50) -> list[Showtime]
-  - start_time > from_time (default: now)
-- count_by_movie(movie_id: UUID) -> int
-- count_by_room(room_id: UUID) -> int
-
-# Status
-- activate(showtime_id: UUID) -> Showtime | None
-- deactivate(showtime_id: UUID) -> Showtime | None
-
-# Validation helpers
-- check_room_conflict(room_id: UUID, start_time: datetime, end_time: datetime, exclude_id: UUID | None = None) -> bool
-  - Returns True if there's a conflicting showtime
-  - Exclude showtime with exclude_id (for update)
-
-- get_overlapping_showtimes(room_id: UUID, start_time: datetime, end_time: datetime) -> list[Showtime]
-  - Returns all overlapping showtimes
-
-# With relationships
-- get_by_id_with_movie(showtime_id: UUID) -> Showtime | None
-- get_by_id_with_room(showtime_id: UUID) -> Showtime | None
-- get_by_id_full(showtime_id: UUID) -> Showtime | None
-  - Eager load movie, room, room.cinema
-"""
+"""Showtime repository - data access layer for Showtime entity."""
 from fastapi import Depends
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlmodel import col
 from datetime import datetime, time, timedelta, timezone, date
 
 from app.shared.dependencies import DbSession
 from app.modules.showtimes.models import Showtimes
-from app.shared.schemas.pagination import PaginationParams
 from app.modules.showtimes.schemas.domain import ShowtimeCreate, ShowtimeUpdate
-from app.modules.cinemas.models import Rooms, Cinemas
+from app.modules.cinemas.models import Rooms
 
 
 class ShowtimeRepository:

@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import Field, computed_field
+from pydantic import computed_field
 
 from app.shared.schemas.base import BaseSchema
 from app.shared.schemas.nested import (

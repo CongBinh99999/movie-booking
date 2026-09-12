@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { movieService, type MovieFilters } from "@/services/movie.service";
 
 export function useMovies(filters?: MovieFilters) {

@@ -1,42 +1,4 @@
-"""Payment repository - data access layer for Payment entity.
-
-TODO: Implement PaymentRepository with methods:
-
-# CRUD cơ bản
-- get_by_id(payment_id: UUID) -> Payment | None
-- get_by_transaction_id(transaction_id: str) -> Payment | None
-- create(data: PaymentCreate) -> Payment
-- update(payment: Payment, data: PaymentUpdate) -> Payment
-
-# Query methods
-- get_by_booking(booking_id: UUID) -> list[Payment]
-- get_by_status(status: PaymentStatus, skip: int = 0, limit: int = 100) -> list[Payment]
-- get_by_method(method: PaymentMethod, skip: int = 0, limit: int = 100) -> list[Payment]
-- get_latest_by_booking(booking_id: UUID) -> Payment | None
-  - Get most recent payment for a booking
-- count_by_status(status: PaymentStatus) -> int
-
-# Status updates
-- update_status(payment_id: UUID, status: PaymentStatus) -> Payment | None
-- mark_as_completed(payment_id: UUID, transaction_id: str, callback_data: dict) -> Payment | None
-  - Set status=COMPLETED, paid_at=now(), transaction_id, callback_data
-- mark_as_failed(payment_id: UUID, reason: str) -> Payment | None
-  - Set status=FAILED, failed_at=now(), failure_reason
-- mark_as_refunded(payment_id: UUID) -> Payment | None
-  - Set status=REFUNDED
-
-# Helpers
-- exists_by_transaction_id(transaction_id: str) -> bool
-
-# With relationships
-- get_by_id_with_booking(payment_id: UUID) -> Payment | None
-  - Eager load booking
-
-# Admin/Reporting
-- get_revenue_by_date_range(start: date, end: date) -> Decimal
-  - Sum of completed payments
-- get_payments_by_date_range(start: date, end: date, status: PaymentStatus | None) -> list[Payment]
-"""
+"""Payment repository - data access layer for Payment entity."""
 from fastapi import Depends
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession

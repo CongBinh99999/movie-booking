@@ -14,7 +14,7 @@ from app.shared.schemas.nested import (
 
 from uuid import UUID
 from decimal import Decimal
-from datetime import datetime, date
+from datetime import datetime
 from pydantic import Field, model_validator
 
 

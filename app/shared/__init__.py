@@ -1,11 +1,4 @@
-"""Shared utilities and common components.
-
-TODO: Export from this package:
-- Base, get_db from database
-- Exception classes from exceptions
-"""
-
-# TODO: Add exports after implementing
+"""Shared utilities and common components."""
 from app.shared.exceptions import (
     AppException,
     NotFoundError,

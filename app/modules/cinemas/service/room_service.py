@@ -6,16 +6,8 @@ from uuid import UUID
 from app.modules.cinemas.repository.room_repository import RoomRepository, RoomRepoDep
 from app.modules.cinemas.repository.cinema_repository import CinemaRepository, CinemaRepoDep
 from app.modules.cinemas.repository.seat_repository import SeatRepository, SeatRepoDep
-from app.modules.cinemas.schemas.domain import (
-    RoomDTO, RoomCreate, RoomUpdate, RoomWithSeats,
-    SeatCreate, SeatPattern, SeatGenerationConfig, SeatDTO
-)
-from app.modules.cinemas.exceptions.room_exceptions import (
-    RoomNotFoundError,
-    RoomAlreadyExistsError,
-    RoomInactiveError,
-    RoomHasShowtimesError,
-)
+from app.modules.cinemas.schemas.domain import RoomDTO, RoomCreate, RoomUpdate, RoomWithSeats, SeatCreate, SeatPattern, SeatGenerationConfig
+from app.modules.cinemas.exceptions.room_exceptions import RoomNotFoundError, RoomAlreadyExistsError, RoomHasShowtimesError
 from app.modules.cinemas.exceptions.cinema_exceptions import CinemaNotFoundError
 from app.shared.schemas.pagination import PaginationParams
 

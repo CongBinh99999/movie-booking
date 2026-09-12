@@ -8,12 +8,7 @@ from app.modules.cinemas.models import SeatType
 from app.modules.cinemas.schemas.domain import (
     SeatDTO, SeatUpdate, BulkSeatUpdate, SeatGenerationConfig, SeatCreate
 )
-from app.modules.cinemas.exceptions import (
-    SeatAlreadyExistsError,
-    SeatNotFoundError,
-    SeatInactiveError,
-    RoomNotFoundError
-)
+from app.modules.cinemas.exceptions import SeatNotFoundError, RoomNotFoundError
 
 
 class SeatService:
