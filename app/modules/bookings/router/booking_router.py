@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.modules.auth.dependencies import CurrentUser, RequireAdmin
+from app.modules.auth.dependencies import CurrentUser, OptionalCurrentUser, RequireAdmin
 from app.modules.bookings.exceptions import BookingNotFoundError
 from app.modules.bookings.models import BookingStatus
 from app.modules.bookings.schemas.api import (
@@ -147,8 +147,11 @@ seat_router = APIRouter(prefix="/showtimes", tags=["Bookings"])
 async def get_seat_availability(
     showtime_id: UUID,
     service: BookingServiceDep,
+    current_user: OptionalCurrentUser,
 ):
-    seats = await service.get_available_seats(showtime_id)
+    seats = await service.get_available_seats(
+        showtime_id, user_id=current_user.id if current_user else None
+    )
     base_price = seats[0].base_price if seats else 0
 
     return SeatAvailabilityResponse(
