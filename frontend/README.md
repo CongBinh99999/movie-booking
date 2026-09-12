@@ -2,6 +2,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Backend API mặc định là `http://localhost:8000/api/v1`. Trỏ sang chỗ khác
+bằng cách tạo `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+```
+
 First, run the development server:
 
 ```bash
