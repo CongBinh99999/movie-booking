@@ -10,6 +10,7 @@ Cấu hình từ app.core.config:
 """
 
 
+import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Any
 from uuid import uuid4, UUID
@@ -23,6 +24,11 @@ from app.modules.auth.schemas.domain import TokenPayload
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 settings = get_setting()
+
+# Hash của một mật khẩu ngẫu nhiên, dùng khi username không tồn tại. Verify nó
+# tốn đúng thời gian như verify hash thật (~100ms với argon2), nên thời gian
+# phản hồi của /auth/login không tiết lộ tài khoản có tồn tại hay không.
+DUMMY_PASSWORD_HASH = pwd_context.hash(secrets.token_urlsafe(32))
 
 
 def hash_password(password: str) -> str:
