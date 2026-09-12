@@ -1,0 +1,9 @@
+Alembic migrations. DATABASE_URL lấy từ app.core.config (file .env).
+
+    alembic upgrade head                          # áp dụng migration
+    alembic revision --autogenerate -m "message"  # sinh migration mới
+    alembic downgrade -1                          # lùi 1 bước
+
+Enum type của Postgres do migration quản lý, không phải SQLAlchemy
+(model khai create_type=False). Khi thêm enum mới phải tự viết
+sa.Enum(...).create(op.get_bind()) trong migration.
