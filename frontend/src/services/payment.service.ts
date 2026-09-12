@@ -1,36 +1,31 @@
 import { apiClient } from "@/lib/api";
-import type { Payment } from "@/types";
-
-export interface CreatePaymentData {
-    booking_id: string;
-    method: "vnpay" | "credit_card" | "cash";
-    return_url?: string;
-}
 
 export interface VNPayPaymentResponse {
     payment_url: string;
 }
 
+export interface VNPayReturnResult {
+    is_valid: boolean;
+    is_success: boolean;
+}
+
 export const paymentService = {
-    createPayment: async (
-        data: CreatePaymentData
-    ): Promise<Payment | VNPayPaymentResponse> => {
-        const response = await apiClient.post<Payment | VNPayPaymentResponse>(
-            "/payments",
-            data
+    /** POST /payments/vnpay/create — backend nhận booking_id qua query string. */
+    createVNPayPayment: async (bookingId: string): Promise<VNPayPaymentResponse> => {
+        const response = await apiClient.post<VNPayPaymentResponse>(
+            "/payments/vnpay/create",
+            null,
+            { params: { booking_id: bookingId } }
         );
         return response.data;
     },
 
-    getPaymentByBookingId: async (bookingId: string): Promise<Payment> => {
-        const response = await apiClient.get<Payment>(`/payments/booking/${bookingId}`);
-        return response.data;
-    },
-
-    verifyVNPayCallback: async (params: URLSearchParams): Promise<Payment> => {
-        const response = await apiClient.get<Payment>(`/payments/vnpay/callback`, {
-            params: Object.fromEntries(params),
-        });
+    /** GET /payments/vnpay/verify-return — chỉ xác thực chữ ký để render UI. */
+    verifyVNPayReturn: async (params: URLSearchParams): Promise<VNPayReturnResult> => {
+        const response = await apiClient.get<VNPayReturnResult>(
+            "/payments/vnpay/verify-return",
+            { params: Object.fromEntries(params) }
+        );
         return response.data;
     },
 };
