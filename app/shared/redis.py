@@ -17,7 +17,8 @@ async def get_redis() -> AsyncGenerator[redis.Redis, None]:
 
 @asynccontextmanager
 async def get_redis_client() -> AsyncGenerator[redis.Redis, None]:
-    client = redis.Redis(connection_pool=redis_pool)
+    """Redis client cho code chạy ngoài request (background task, script)."""
+    client = redis.Redis(connection_pool=redis_pool, decode_responses=True)
     try:
         yield client
     finally:

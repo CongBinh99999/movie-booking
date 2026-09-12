@@ -1,10 +1,12 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_setting
+from app.modules.bookings.tasks import expire_bookings_loop
 from app.shared.exceptions import AppException
 
 from app.modules.auth.router import router as auth_router
@@ -26,7 +28,11 @@ setting = get_setting()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Khởi động")
+    expire_task = asyncio.create_task(expire_bookings_loop())
     yield
+    expire_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await expire_task
     print("Shutdown")
 
 
