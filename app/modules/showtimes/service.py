@@ -85,6 +85,11 @@ class ShowtimeService:
         if new_start >= new_end:
             raise InvalidShowtimeRangeError(new_start, new_end)
 
+        # create_showtime chặn suất chiếu quá khứ; update thì không, nên trước
+        # đây dời một suất về quá khứ vẫn lọt.
+        if data.start_time is not None and self._as_utc(new_start) <= datetime.now(timezone.utc):
+            raise ShowtimeInPastError(new_start)
+
         isTimeChanged = (
             data.start_time is not None or data.end_time is not None
         )
@@ -112,10 +117,11 @@ class ShowtimeService:
         if showtime is None:
             raise ShowtimeNotFoundError(showtime_id)
 
-        if await self.showtime_repo.has_bookings(showtime_id):
+        booking_count = await self.showtime_repo.count_bookings(showtime_id)
+        if booking_count:
             raise ShowtimeHasBookingsError(
                 showtime_id=showtime_id,
-                booking_count=0,
+                booking_count=booking_count,
             )
 
         await self.showtime_repo.delete(showtime)
@@ -127,17 +133,23 @@ class ShowtimeService:
         if movie is None:
             raise MovieNotFoundError(data.movie_id)
 
-        create_items: list[ShowtimeCreate] = []
-        for item in data.showtimes:
-            create_data = ShowtimeCreate(
+        create_items: list[ShowtimeCreate] = [
+            ShowtimeCreate(
                 movie_id=data.movie_id,
                 room_id=item.room_id,
                 start_time=item.start_time,
                 end_time=item.end_time,
                 base_price=item.base_price,
             )
+            for item in data.showtimes
+        ]
+
+        # Kiểm chéo trong chính request trước: chưa item nào được ghi nên
+        # check_room_conflict với DB không thể phát hiện hai item chồng nhau.
+        self._assert_no_internal_conflicts(create_items)
+
+        for create_data in create_items:
             await self._validate_room_and_conflict(create_data)
-            create_items.append(create_data)
 
         results: list[ShowtimeDTO] = []
         for create_data in create_items:
@@ -162,17 +174,34 @@ class ShowtimeService:
 
         return ShowtimeDTO.model_validate(showtime)
 
+    @staticmethod
+    def _as_utc(value: datetime) -> datetime:
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+    @classmethod
+    def _assert_no_internal_conflicts(cls, items: list[ShowtimeCreate]) -> None:
+        """Chặn hai suất chiếu chồng giờ cùng phòng trong cùng một request."""
+        by_room: dict[UUID, list[ShowtimeCreate]] = {}
+        for item in items:
+            by_room.setdefault(item.room_id, []).append(item)
+
+        for room_id, room_items in by_room.items():
+            room_items.sort(key=lambda i: cls._as_utc(i.start_time))
+            for earlier, later in zip(room_items, room_items[1:]):
+                if cls._as_utc(later.start_time) < cls._as_utc(earlier.end_time):
+                    raise ShowtimeConflictError(
+                        room_id=room_id,
+                        start_time=later.start_time,
+                        end_time=later.end_time,
+                    )
+
     async def _validate_showtime(
         self,
         data: ShowtimeCreate,
         exclude_id: UUID | None = None,
     ) -> None:
         now = datetime.now(timezone.utc)
-        compare_start = (
-            data.start_time if data.start_time.tzinfo
-            else data.start_time.replace(tzinfo=timezone.utc)
-        )
-        if compare_start <= now:
+        if self._as_utc(data.start_time) <= now:
             raise ShowtimeInPastError(data.start_time)
 
         movie = await self.movie_repo.get_by_id(data.movie_id)

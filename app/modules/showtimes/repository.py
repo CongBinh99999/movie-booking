@@ -130,14 +130,14 @@ class ShowtimeRepository:
         await self.db.delete(showtime)
         await self.db.flush()
 
-    async def has_bookings(self, showtime_id: UUID) -> bool:
-        """Kiểm tra suất chiếu có booking không (dùng count query, không lazy load)."""
+    async def count_bookings(self, showtime_id: UUID) -> int:
+        """Đếm booking của suất chiếu (dùng count query, không lazy load)."""
         from app.modules.bookings.models import Bookings
         result = await self.db.execute(
             select(func.count(Bookings.id))
             .where(Bookings.showtime_id == showtime_id)
         )
-        return result.scalar_one() > 0
+        return result.scalar_one()
 
     # ── Query methods ────────────────────────────────────────
 
