@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from app.modules.cinemas.models import Cinemas
 from uuid import UUID
-from sqlalchemy import select, func, update, and_
+from sqlalchemy import select, func, and_
 from sqlmodel import col
 from sqlalchemy.orm import selectinload
 from app.modules.cinemas.schemas.domain import CinemaCreate, CinemaUpdate, CinemaSearchCriteria

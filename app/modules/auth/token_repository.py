@@ -2,10 +2,7 @@ from typing import Annotated
 from fastapi import Depends
 from app.shared.dependencies import RedisClient
 from redis.asyncio import Redis
-from typing import Optional
 from datetime import datetime, timezone
-from uuid import UUID
-import json
 
 
 class TokenRepository:

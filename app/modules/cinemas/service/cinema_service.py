@@ -11,12 +11,7 @@ from app.modules.cinemas.schemas.domain import (
     CinemaUpdate,
     CinemaWithRooms
 )
-from app.modules.cinemas.exceptions.cinema_exceptions import (
-    CinemaAlreadyExistsError,
-    CinemaHasRoomsError,
-    CinemaInactiveError,
-    CinemaNotFoundError
-)
+from app.modules.cinemas.exceptions.cinema_exceptions import CinemaAlreadyExistsError, CinemaHasRoomsError, CinemaNotFoundError
 from app.shared.schemas.pagination import PaginationParams
 
 

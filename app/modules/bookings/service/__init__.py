@@ -4,7 +4,6 @@ Export BookingService và DI dependencies.
 """
 from typing import Annotated
 
-import redis.asyncio as aioredis
 from fastapi import Depends
 
 from app.shared.dependencies import RedisClient

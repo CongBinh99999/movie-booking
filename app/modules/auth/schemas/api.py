@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, ConfigDict
+from pydantic import EmailStr, Field, field_validator, model_validator
 from uuid import UUID
 from datetime import datetime
 import re

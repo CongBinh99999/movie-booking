@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from uuid import UUID
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.modules.auth.schemas.api import (

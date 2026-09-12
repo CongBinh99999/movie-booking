@@ -22,7 +22,7 @@ from decimal import Decimal
 
 if TYPE_CHECKING:
     from app.modules.showtimes.models import Showtimes
-    from app.modules.bookings.models import Bookings, BookingSeats
+    from app.modules.bookings.models import Bookings
 
 
 class SeatType(str, Enum):

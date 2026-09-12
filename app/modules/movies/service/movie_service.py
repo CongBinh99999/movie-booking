@@ -5,14 +5,7 @@ from app.modules.movies.repository.movie_genre_repository import MovieGenreRepos
 from typing import Annotated
 from datetime import date
 from uuid import UUID
-from app.modules.movies.schemas.domain import (
-    MovieDTO,
-    MovieSearchCriteria,
-    MovieCreate,
-    MovieUpdate,
-    NowShowingMovie,
-    MovieWithGenres
-)
+from app.modules.movies.schemas.domain import MovieDTO, MovieSearchCriteria, MovieCreate, MovieUpdate, MovieWithGenres
 from app.modules.movies.exceptions.movie_exceptions import (
     MovieNotFoundError,
     MovieAlreadyExistsError,
