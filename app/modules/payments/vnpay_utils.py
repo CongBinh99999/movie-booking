@@ -5,8 +5,11 @@ from datetime import datetime, timezone
 
 
 def _build_query_string(params: dict) -> str:
+    # VNPay 2.1.0 ký trên chuỗi encode bằng quote_plus (dấu cách -> "+"),
+    # đúng mặc định của urlencode. Dùng quote (dấu cách -> "%20") sẽ ra chữ ký
+    # khác với phía VNPay ngay khi có tham số chứa dấu cách, ví dụ vnp_OrderInfo.
     sorted_params = sorted(params.items())
-    return urllib.parse.urlencode(sorted_params, quote_via=urllib.parse.quote)
+    return urllib.parse.urlencode(sorted_params)
 
 
 def _sign(data: str, secret_key: str) -> str:
