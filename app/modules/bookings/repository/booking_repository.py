@@ -155,6 +155,28 @@ class BookingRepository:
 
         return list(result.scalars().all())
 
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Bookings]:
+        """Lấy tất cả booking, mới nhất trước."""
+        result = await self.db.execute(
+            select(Bookings)
+            .order_by(Bookings.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def count_all(self) -> int:
+        result = await self.db.execute(select(func.count()).select_from(Bookings))
+        return result.scalar_one()
+
+    async def count_by_status(self, status: BookingStatus) -> int:
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(Bookings)
+            .where(Bookings.status == status)
+        )
+        return result.scalar_one()
+
     async def count_by_user(self, user_id: UUID) -> int:
         count = await self.db.execute(
             select(func.count(Bookings.id)).select_from(Bookings)

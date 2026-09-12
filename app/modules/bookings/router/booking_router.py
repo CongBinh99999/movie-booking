@@ -198,7 +198,7 @@ async def admin_get_bookings(
         items = await service.booking_repo.get_by_status(
             status_filter, skip=params.offset, limit=params.size,
         )
-        total = len(items)
+        total = await service.booking_repo.count_by_status(status_filter)
 
         return BookingListResponse(
             items=[BookingDTO.model_validate(b) for b in items],
@@ -207,9 +207,14 @@ async def admin_get_bookings(
             size=params.size,
         )
 
+    # Không lọc gì thì trả toàn bộ, trước đây trả danh sách rỗng.
+    items = await service.booking_repo.get_all(
+        skip=params.offset, limit=params.size,
+    )
+
     return BookingListResponse(
-        items=[],
-        total=0,
+        items=[BookingDTO.model_validate(b) for b in items],
+        total=await service.booking_repo.count_all(),
         page=params.page,
         size=params.size,
     )

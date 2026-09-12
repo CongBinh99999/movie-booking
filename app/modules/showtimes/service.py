@@ -215,13 +215,17 @@ class ShowtimeService:
         limit = pagination.size
 
         if criteria.cinema_id and not criteria.movie_id and not criteria.room_id:
+            filter_date = criteria.date_from.date() if criteria.date_from else None
             showtimes = await self.showtime_repo.get_by_cinema(
                 cinema_id=criteria.cinema_id,
-                filter_date=criteria.date_from.date() if criteria.date_from else None,
+                filter_date=filter_date,
                 skip=skip,
                 limit=limit,
             )
-            return showtimes, len(showtimes)
+            total = await self.showtime_repo.count_by_cinema(
+                criteria.cinema_id, filter_date
+            )
+            return showtimes, total
 
         if criteria.movie_id and not criteria.room_id and not criteria.cinema_id:
             showtimes = await self.showtime_repo.get_by_movie(
@@ -248,20 +252,23 @@ class ShowtimeService:
                 skip=skip,
                 limit=limit,
             )
-            return showtimes, len(showtimes)
+            total = await self.showtime_repo.count_by_date_range(
+                criteria.date_from.date(), criteria.date_to.date()
+            )
+            return showtimes, total
 
         if criteria.is_active is True:
             showtimes = await self.showtime_repo.get_active(
                 skip=skip,
                 limit=limit,
             )
-            return showtimes, len(showtimes)
+            return showtimes, await self.showtime_repo.count_active()
 
         showtimes = await self.showtime_repo.get_all(
             skip=skip,
             limit=limit,
         )
-        return showtimes, len(showtimes)
+        return showtimes, await self.showtime_repo.count_all()
 
 
 def get_showtime_service(

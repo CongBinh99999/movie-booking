@@ -5,12 +5,13 @@ from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from sqlmodel import col, select, and_, or_, func, update
+from sqlalchemy import distinct
 from sqlalchemy.orm import selectinload
 from app.modules.movies.schemas.domain import MovieCreate, MovieUpdate, MovieSearchCriteria
 
 from app.shared.dependencies import DbSession
 from app.modules.movies.models import Movies, MovieGenres
-from app.modules.cinemas.models import Rooms, Cinemas
+from app.modules.cinemas.models import Rooms
 
 
 def _get_showtimes_model():
@@ -94,70 +95,85 @@ class MovieRepository:
 
         return list(result.scalars().all())
 
-    async def get_now_showing(self, cinema_id: UUID | None = None,  skip: int = 0, limit: int = 50) -> list[Movies]:
-        today = date.today()
+    # ── Filter dùng chung cho get_* và count_* ───────────────
 
-        query = (
-            select(Movies)
-            .where(
-                and_(
-                    col(Movies.is_active).is_(True),
-                    col(Movies.release_date) <= today,
-                    or_(
-                        col(Movies.end_date).is_(None),
-                        col(Movies.end_date) >= today
-                    )
-                )
-            )
+    @staticmethod
+    def _now_showing_conditions():
+        today = date.today()
+        return [
+            col(Movies.is_active).is_(True),
+            col(Movies.release_date) <= today,
+            or_(
+                col(Movies.end_date).is_(None),
+                col(Movies.end_date) >= today
+            ),
+        ]
+
+    @staticmethod
+    def _coming_soon_conditions():
+        today = date.today()
+        return [
+            col(Movies.is_active).is_(True),
+            col(Movies.release_date) > today,
+        ]
+
+    @staticmethod
+    def _scope_to_cinema(query, cinema_id: UUID | None):
+        """Giới hạn còn những phim có suất chiếu tại rạp chỉ định."""
+        if not cinema_id:
+            return query
+
+        Showtimes = _get_showtimes_model()
+        return (
+            query
+            .join(Showtimes, Showtimes.movie_id == Movies.id)
+            .join(Rooms, Showtimes.room_id == Rooms.id)
+            .where(Rooms.cinema_id == cinema_id)
+        )
+
+    async def get_now_showing(self, cinema_id: UUID | None = None,  skip: int = 0, limit: int = 50) -> list[Movies]:
+        query = self._scope_to_cinema(
+            select(Movies).where(and_(*self._now_showing_conditions())),
+            cinema_id,
         )
         if cinema_id:
-            Showtimes = _get_showtimes_model()
-            query = (
-                query
-                .join(Showtimes, Showtimes.movie_id == Movies.id)
-                .join(Rooms, Showtimes.room_id == Rooms.id)
-                .join(Cinemas, Rooms.cinema_id == Cinemas.id)
-                .where(Cinemas.id == cinema_id)
-                .distinct()
-            )
+            query = query.distinct()
 
-        query = query.offset(skip).limit(limit)
-
-        result = await self.db.execute(query)
+        result = await self.db.execute(query.offset(skip).limit(limit))
 
         return list(result.scalars().all())
+
+    async def count_now_showing(self, cinema_id: UUID | None = None) -> int:
+        query = self._scope_to_cinema(
+            select(func.count(distinct(Movies.id)))
+            .select_from(Movies)
+            .where(and_(*self._now_showing_conditions())),
+            cinema_id,
+        )
+
+        return (await self.db.execute(query)).scalar_one()
 
     async def get_coming_soon(self, cinema_id: UUID | None = None, skip: int = 0, limit: int = 50) -> list[Movies]:
-        today = date.today()
-
-        query = (
-            select(Movies)
-            .where(
-                and_(
-                    col(Movies.is_active).is_(True),
-                    col(Movies.release_date) > today
-                )
-            )
-            .offset(skip)
-            .limit(limit)
+        query = self._scope_to_cinema(
+            select(Movies).where(and_(*self._coming_soon_conditions())),
+            cinema_id,
         )
-
         if cinema_id:
-            Showtimes = _get_showtimes_model()
-            query = (
-                query
-                .join(Showtimes, Showtimes.movie_id == Movies.id)
-                .join(Rooms, Showtimes.room_id == Rooms.id)
-                .join(Cinemas, Rooms.cinema_id == Cinemas.id)
-                .where(Cinemas.id == cinema_id)
-                .distinct()
-            )
+            query = query.distinct()
 
-        query = query.offset(skip).limit(limit)
-
-        result = await self.db.execute(query)
+        result = await self.db.execute(query.offset(skip).limit(limit))
 
         return list(result.scalars().all())
+
+    async def count_coming_soon(self, cinema_id: UUID | None = None) -> int:
+        query = self._scope_to_cinema(
+            select(func.count(distinct(Movies.id)))
+            .select_from(Movies)
+            .where(and_(*self._coming_soon_conditions())),
+            cinema_id,
+        )
+
+        return (await self.db.execute(query)).scalar_one()
 
     async def get_by_genre(self, genre_id: UUID, skip: int = 0, limit: int = 50) -> list[Movies]:
         result = await self.db.execute(

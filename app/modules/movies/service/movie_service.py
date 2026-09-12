@@ -109,19 +109,25 @@ class MovieService:
 
         await self.movie_repo.delete(movie_id)
 
-    async def get_now_showing(self, cinema_id: UUID | None, skip: int, limit: int) -> list[MovieDTO]:
+    async def get_now_showing(
+        self, cinema_id: UUID | None, skip: int, limit: int
+    ) -> tuple[list[MovieDTO], int]:
         movies = await self.movie_repo.get_now_showing(
             cinema_id=cinema_id,
             skip=skip,
             limit=limit
         )
+        total = await self.movie_repo.count_now_showing(cinema_id)
 
-        return list(MovieDTO.model_validate(movie) for movie in movies)
+        return [MovieDTO.model_validate(movie) for movie in movies], total
 
-    async def get_coming_soon(self, cinema_id: UUID | None, skip: int, limit: int = 20) -> list[MovieDTO]:
+    async def get_coming_soon(
+        self, cinema_id: UUID | None, skip: int, limit: int = 20
+    ) -> tuple[list[MovieDTO], int]:
         movies = await self.movie_repo.get_coming_soon(cinema_id, skip, limit)
+        total = await self.movie_repo.count_coming_soon(cinema_id)
 
-        return list(MovieDTO.model_validate(movie) for movie in movies)
+        return [MovieDTO.model_validate(movie) for movie in movies], total
 
     async def add_genres_to_movie(self, movie_id: UUID, genre_ids: list[UUID]) -> MovieWithGenres:
         movie = await self.movie_repo.get_by_id(movie_id)

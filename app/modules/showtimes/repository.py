@@ -61,6 +61,28 @@ class ShowtimeRepository:
 
     # ── CRUD cơ bản ──────────────────────────────────────────
 
+    # ── Filter dùng chung cho get_* và count_* ───────────────
+
+    @staticmethod
+    def _day_bounds(start_date: date, end_date: date | None = None):
+        """Nửa khoảng [đầu ngày start_date, đầu ngày sau end_date)."""
+        last = end_date if end_date is not None else start_date
+        return (
+            datetime.combine(start_date, time.min, tzinfo=timezone.utc),
+            datetime.combine(last + timedelta(days=1), time.min, tzinfo=timezone.utc),
+        )
+
+    @classmethod
+    def _cinema_conditions(cls, cinema_id: UUID, filter_date: date | None):
+        conditions = [Rooms.cinema_id == cinema_id]
+        if filter_date is not None:
+            day_start, day_end = cls._day_bounds(filter_date)
+            conditions += [
+                Showtimes.start_time >= day_start,
+                Showtimes.start_time < day_end,
+            ]
+        return conditions
+
     async def get_by_id(self, showtime_id: UUID) -> Showtimes | None:
         result = await self.db.execute(
             select(Showtimes)
@@ -146,21 +168,10 @@ class ShowtimeRepository:
         query = (
             select(Showtimes)
             .join(Rooms, Showtimes.room_id == Rooms.id)
-            .where(Rooms.cinema_id == cinema_id)
+            .where(*self._cinema_conditions(cinema_id, filter_date))
+            .offset(skip)
+            .limit(limit)
         )
-
-        if filter_date is not None:
-            start_of_day = datetime.combine(
-                filter_date, time.min, tzinfo=timezone.utc)
-            next_day = datetime.combine(
-                filter_date + timedelta(days=1), time.min, tzinfo=timezone.utc)
-
-            query = query.where(
-                Showtimes.start_time >= start_of_day,
-                Showtimes.start_time < next_day
-            )
-
-        query = query.offset(skip).limit(limit)
 
         result = await self.db.execute(query)
 
@@ -185,9 +196,7 @@ class ShowtimeRepository:
         self, start_date: date, end_date: date,
         skip: int = 0, limit: int = 100
     ) -> list[Showtimes]:
-        day_start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
-        day_end = datetime.combine(
-            end_date + timedelta(days=1), time.min, tzinfo=timezone.utc)
+        day_start, day_end = self._day_bounds(start_date, end_date)
 
         result = await self.db.execute(
             select(Showtimes)
@@ -240,6 +249,49 @@ class ShowtimeRepository:
             select(func.count())
             .select_from(Showtimes)
             .where(Showtimes.room_id == room_id)
+        )
+
+        return result.scalar_one()
+
+    async def count_all(self) -> int:
+        """Đếm toàn bộ suất chiếu."""
+        result = await self.db.execute(select(func.count()).select_from(Showtimes))
+
+        return result.scalar_one()
+
+    async def count_by_cinema(
+        self, cinema_id: UUID, filter_date: date | None = None
+    ) -> int:
+        """Đếm suất chiếu của một rạp, cùng bộ lọc với get_by_cinema."""
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(Showtimes)
+            .join(Rooms, Showtimes.room_id == Rooms.id)
+            .where(*self._cinema_conditions(cinema_id, filter_date))
+        )
+
+        return result.scalar_one()
+
+    async def count_by_date_range(self, start_date: date, end_date: date) -> int:
+        """Đếm suất chiếu trong khoảng ngày, cùng bộ lọc với get_by_date_range."""
+        day_start, day_end = self._day_bounds(start_date, end_date)
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(Showtimes)
+            .where(
+                Showtimes.start_time >= day_start,
+                Showtimes.start_time < day_end
+            )
+        )
+
+        return result.scalar_one()
+
+    async def count_active(self) -> int:
+        """Đếm suất chiếu đang hoạt động."""
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(Showtimes)
+            .where(col(Showtimes.is_active).is_(True))
         )
 
         return result.scalar_one()

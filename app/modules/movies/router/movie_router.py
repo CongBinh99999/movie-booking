@@ -26,6 +26,16 @@ from app.modules.auth.dependencies import RequireAdmin
 router = APIRouter(prefix="/movies", tags=["Movies"])
 
 
+
+def _movie_list(movies, total: int, skip: int, limit: int) -> MovieListResponse:
+    """Gói kết quả kèm total thật và số trang suy từ skip/limit."""
+    return MovieListResponse(
+        items=[MovieResponse.model_validate(m) for m in movies],
+        total=total,
+        page=(skip // limit) + 1 if limit > 0 else 1,
+        size=limit,
+    )
+
 @router.get(
     "",
     response_model=MovieListResponse,
@@ -36,18 +46,16 @@ async def list_movie(
     params: MovieQueryParams = Depends(),
 ):
     if params.status == "now_showing":
-        items = await service.get_now_showing(
+        movies, total = await service.get_now_showing(
             cinema_id=None,
             skip=params.skip,
             limit=params.limit
         )
-        items = [MovieResponse.model_validate(m) for m in items]
-        return MovieListResponse(items=items, total=len(items), page=1, size=params.limit)
+        return _movie_list(movies, total, params.skip, params.limit)
 
     if params.status == "coming_soon":
-        items = await service.get_coming_soon(None, params.skip, params.limit)
-        items = [MovieResponse.model_validate(m) for m in items]
-        return MovieListResponse(items=items, total=len(items), page=1, size=params.limit)
+        movies, total = await service.get_coming_soon(None, params.skip, params.limit)
+        return _movie_list(movies, total, params.skip, params.limit)
 
     criteria = MovieSearchCriteria(
         title=params.title,
@@ -57,8 +65,7 @@ async def list_movie(
         is_active=params.is_active,
     )
     movies, total = await service.search_movies(criteria, params.skip, params.limit)
-    items = [MovieResponse.model_validate(m) for m in movies]
-    return MovieListResponse(items=items, total=total, page=1, size=params.limit)
+    return _movie_list(movies, total, params.skip, params.limit)
 
 
 @router.get(
@@ -72,15 +79,13 @@ async def now_showing(
     skip: int = 0,
     limit: int = 20,
 ):
-    movies = await service.get_now_showing(
+    movies, total = await service.get_now_showing(
         cinema_id=cinema_id,
         skip=skip,
         limit=limit
     )
 
-    items = [MovieResponse.model_validate(m) for m in movies]
-
-    return MovieListResponse(items=items, total=len(items), page=1, size=limit)
+    return _movie_list(movies, total, skip, limit)
 
 
 @router.get(
@@ -94,15 +99,13 @@ async def coming_soon(
     skip: int = 0,
     limit: int = 20
 ):
-    movies = await service.get_coming_soon(
+    movies, total = await service.get_coming_soon(
         cinema_id=cinema_id,
         skip=skip,
         limit=limit
     )
 
-    items = [MovieResponse.model_validate(m) for m in movies]
-
-    return MovieListResponse(items=items, total=len(items), page=1, size=limit)
+    return _movie_list(movies, total, skip, limit)
 
 
 @router.get(
