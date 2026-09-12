@@ -1,4 +1,5 @@
-from decimal import Decimal
+import logging
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -8,15 +9,14 @@ from app.core.config import get_setting
 from app.modules.payments.models import PaymentMethod, PaymentStatus
 from app.modules.payments.repository import PaymentRepository
 from app.modules.payments.schemas.domain import PaymentCreate
-from app.modules.payments.exceptions import (
-    PaymentNotFoundError,
-    InvalidPaymentAmountError,
-    InvalidPaymentSignatureError,
-)
 from app.modules.payments import vnpay_utils
+from app.modules.bookings.models import BookingStatus
+from app.modules.bookings.exceptions import BookingExpiredError, BookingNotPendingError
 from app.modules.bookings.service.booking_service import BookingService
-from app.modules.bookings.exceptions import BookingNotFoundError, BookingOwnershipError
+from app.shared.exceptions import AppException
 
+
+logger = logging.getLogger(__name__)
 
 VNPAY_AMOUNT_MULTIPLIER = 100
 TERMINAL_STATUSES = {PaymentStatus.COMPLETED, PaymentStatus.FAILED}
@@ -44,6 +44,15 @@ class PaymentService:
         booking = await self.booking_service.get_booking_by_id(
             booking_id, user_id=user_id
         )
+
+        # Chặn ngay từ đây thay vì chờ IPN mới phát hiện: tạo link thanh toán
+        # cho booking đã huỷ hoặc hết hạn nghĩa là thu tiền một vé không bao
+        # giờ xác nhận được.
+        if booking.status != BookingStatus.PENDING:
+            raise BookingNotPendingError(booking_id, booking.status.value)
+
+        if booking.expires_at < datetime.now(timezone.utc):
+            raise BookingExpiredError(booking_id, booking.expires_at)
 
         vnpay_amount = int(booking.total_amount * VNPAY_AMOUNT_MULTIPLIER)
 
@@ -85,7 +94,11 @@ class PaymentService:
         if payment is None:
             return {"RspCode": "01", "Message": "Order Not Found"}
 
-        vnpay_amount_raw = int(query_params.get("vnp_Amount", 0))
+        try:
+            vnpay_amount_raw = int(query_params.get("vnp_Amount", ""))
+        except ValueError:
+            return {"RspCode": "04", "Message": "Invalid Amount"}
+
         expected_amount = int(payment.amount * VNPAY_AMOUNT_MULTIPLIER)
         if vnpay_amount_raw != expected_amount:
             return {"RspCode": "04", "Message": "Invalid Amount"}
@@ -94,24 +107,55 @@ class PaymentService:
             return {"RspCode": "02", "Message": "Order already confirmed"}
 
         response_code = query_params.get("vnp_ResponseCode", "")
-        transaction_no = query_params.get("vnp_TransactionNo", "")
 
-        if response_code == "00":
-            await self.payment_repo.mark_as_completed(
-                payment,
-                transaction_id=transaction_no,
-                callback_data=query_params,
-            )
-            await self.booking_service.confirm_booking(
-                booking_id=payment.booking_id,
-                user_id=(await self._get_booking_user_id(payment.booking_id)),
-            )
-        else:
+        if response_code != "00":
             await self.payment_repo.mark_as_failed(
                 payment,
                 reason=f"VNPay ResponseCode={response_code}",
             )
+            return {"RspCode": "00", "Message": "Confirm Success"}
 
+        return await self._settle_successful_payment(payment, query_params)
+
+    async def _settle_successful_payment(self, payment, query_params: dict) -> dict:
+        """Xác nhận booking rồi mới ghi nhận payment. Cả hai nằm trong một transaction."""
+        booking = await self.booking_service.get_booking_by_id(payment.booking_id)
+        transaction_no = query_params.get("vnp_TransactionNo", "")
+        callback_data = dict(query_params)
+
+        try:
+            await self.booking_service.confirm_booking(
+                booking_id=payment.booking_id,
+                user_id=booking.user_id,
+            )
+        except AppException:
+            # Tiền đã bị trừ thật, nên payment vẫn phải là COMPLETED. Nhưng
+            # booking không xác nhận được (hết hạn, đã huỷ, ghế đã bị bán lại)
+            # nên cần hoàn tiền thủ công.
+            # ponytail: đánh dấu trong callback_data thay vì thêm trạng thái
+            # PaymentStatus mới (tốn một migration). Cần luồng hoàn tiền tự
+            # động thì mới thêm trạng thái.
+            callback_data["_needs_refund"] = True
+            callback_data["_booking_status"] = booking.status.value
+            await self.payment_repo.mark_as_completed(
+                payment,
+                transaction_id=transaction_no,
+                callback_data=callback_data,
+            )
+            logger.error(
+                "Thanh toán thành công nhưng booking không xác nhận được, "
+                "cần hoàn tiền thủ công: payment_id=%s booking_id=%s status=%s",
+                payment.id,
+                payment.booking_id,
+                booking.status.value,
+            )
+            return {"RspCode": "00", "Message": "Confirm Success"}
+
+        await self.payment_repo.mark_as_completed(
+            payment,
+            transaction_id=transaction_no,
+            callback_data=callback_data,
+        )
         return {"RspCode": "00", "Message": "Confirm Success"}
 
     async def verify_vnpay_return(self, query_params: dict) -> dict:
@@ -121,11 +165,6 @@ class PaymentService:
 
         is_success = query_params.get("vnp_ResponseCode", "") == "00"
         return {"is_valid": True, "is_success": is_success}
-
-    async def _get_booking_user_id(self, booking_id: UUID) -> UUID:
-        booking = await self.booking_service.get_booking_by_id(booking_id)
-        return booking.user_id
-
 
 def _url_update(payment_url: str):
     from app.modules.payments.schemas.domain import PaymentUpdate
