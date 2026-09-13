@@ -1,12 +1,16 @@
 // Auth types
+// Khớp UserResponse của backend (app/modules/auth/schemas/api.py).
+export type UserRole = "user" | "admin";
+
 export interface User {
     id: string;
     email: string;
-    full_name: string;
-    phone_number?: string;
-    role: "admin" | "customer";
+    username: string;
+    full_name: string | null;
+    role: UserRole;
     is_active: boolean;
     created_at: string;
+    updated_at: string;
 }
 
 export interface LoginCredentials {
