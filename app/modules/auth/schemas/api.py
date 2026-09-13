@@ -83,7 +83,10 @@ class RefreshTokenRequest(BaseRequest):
 
 class UserResponse(BaseResponse, TimeStampMixin):
     id: UUID = Field(...)
+    email: EmailStr = Field(...)
+    username: str = Field(...)
     full_name: str | None = Field(default=None)
+    role: RoleType = Field(...)
     is_active: bool = Field(default=True)
 
 

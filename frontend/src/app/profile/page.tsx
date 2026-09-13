@@ -78,10 +78,10 @@ export default function ProfilePage() {
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
                     <div className="w-16 h-16 rounded-full bg-[#e50914] flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-[#e50914]/20">
-                        {user.full_name?.charAt(0)?.toUpperCase() || "U"}
+                        {(user.full_name || user.username).charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-white">{user.full_name || "Người dùng"}</h1>
+                        <h1 className="text-2xl font-bold text-white">{user.full_name || user.username}</h1>
                         <p className="text-[#8888aa] text-sm">{user.email}</p>
                     </div>
                 </div>

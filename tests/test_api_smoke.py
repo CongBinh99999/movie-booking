@@ -54,12 +54,16 @@ async def test_dang_ky_dang_nhap_va_lay_thong_tin(client):
         "/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
     )
     assert me.status_code == 200
-    assert me.json()["id"]
 
-    # UserResponse hiện KHÔNG trả email/username/role, dù trang profile của
-    # frontend đang render user.email và user.role. Chốt lại hình dạng thật ở
-    # đây để lần sửa response model không lọt qua im lặng.
-    assert set(me.json()) == {"id", "full_name", "is_active", "created_at", "updated_at"}
+    body = me.json()
+    assert set(body) == {
+        "id", "email", "username", "full_name", "role", "is_active",
+        "created_at", "updated_at",
+    }
+    assert body["username"] == CREDS["username"]
+    assert body["email"] == "smoke@example.com"
+    assert body["role"] == "user"
+    assert "hashed_password" not in body
 
 
 async def test_refresh_token_khong_dung_duoc_o_endpoint_thuong(client):

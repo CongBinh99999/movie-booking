@@ -63,9 +63,9 @@ export function Navbar() {
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-200 cursor-pointer"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-[#e50914] flex items-center justify-center text-white text-sm font-semibold">
-                                        {user.full_name.charAt(0).toUpperCase()}
+                                        {(user.full_name || user.username).charAt(0).toUpperCase()}
                                     </div>
-                                    <span className="text-sm font-medium">{user.full_name}</span>
+                                    <span className="text-sm font-medium">{user.full_name || user.username}</span>
                                 </button>
                                 {isUserMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-48 glass-card rounded-xl shadow-2xl border border-white/10 py-1 animate-fade-in">
