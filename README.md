@@ -56,9 +56,7 @@ movie_booking/
 │       ├── services/             # API service layer
 │       ├── store/                # Zustand stores
 │       └── types/                # TypeScript types
-├── database/
-│   └── schema.sql                # Full database schema
-├── alembic/                      # Database migrations
+├── alembic/                      # Database migrations (nguồn schema duy nhất)
 ├── tests/                        # Test suite (pytest, async)
 ├── scripts/                      # Utility scripts
 └── docs/                         # Documentation
@@ -139,6 +137,9 @@ movie_booking/
 
 ## Database Schema
 
+Schema do Alembic quản lý. Model SQLModel trong `app/modules/*/models.py` là nguồn
+sự thật duy nhất; sửa model rồi `alembic revision --autogenerate` để sinh migration.
+
 **Models chính:**
 
 - **Users** — UUID PK, email, username, role (user/admin), argon2 hashed password
@@ -179,6 +180,10 @@ pip install -r requirements.txt
 # Cấu hình environment
 cp .env.example .env
 # Chỉnh sửa .env với database credentials của bạn
+# JWT_SECRET, VNPAY_TMN_CODE và VNPAY_HASH_SECRET là bắt buộc
+
+# Tạo schema
+alembic upgrade head
 
 # Chạy server
 uvicorn app.main:app --reload
