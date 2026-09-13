@@ -58,6 +58,8 @@ movie_booking/
 │       └── types/                # TypeScript types
 ├── alembic/                      # Database migrations (nguồn schema duy nhất)
 ├── tests/                        # Test suite (pytest, async)
+├── pyproject.toml                # Dependencies + cấu hình pytest
+├── uv.lock                       # Lockfile (commit vào repo)
 ├── scripts/                      # Utility scripts
 └── docs/                         # Documentation
 ```
@@ -157,10 +159,16 @@ sự thật duy nhất; sửa model rồi `alembic revision --autogenerate` đ�
 
 ### Prerequisites
 
-- **Python 3.12+**
+- **[uv](https://docs.astral.sh/uv/)** (tự cài Python theo `requires-python`)
 - **PostgreSQL 16+**
 - **Redis 7+**
 - **Node.js 20+** (cho frontend)
+
+```bash
+# Cài uv nếu chưa có
+curl -LsSf https://astral.sh/uv/install.sh | sh    # Linux/macOS
+# powershell -c "irm https://astral.sh/uv/install.ps1 | iex"   # Windows
+```
 
 ### Backend Setup
 
@@ -169,13 +177,8 @@ sự thật duy nhất; sửa model rồi `alembic revision --autogenerate` đ�
 git clone https://github.com/CongBinh99999/movie-booking.git
 cd movie-booking
 
-# Tạo virtual environment
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Linux/macOS
-
-# Cài đặt dependencies
-pip install -r requirements.txt
+# Tạo .venv và cài dependencies đúng theo uv.lock
+uv sync
 
 # Cấu hình environment
 cp .env.example .env
@@ -183,11 +186,28 @@ cp .env.example .env
 # JWT_SECRET, VNPAY_TMN_CODE và VNPAY_HASH_SECRET là bắt buộc
 
 # Tạo schema
-alembic upgrade head
+uv run alembic upgrade head
 
 # Chạy server
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
+
+`uv sync` tự dựng `.venv` và cài luôn nhóm `dev`, không cần `python -m venv` hay `activate`. Mọi lệnh
+chạy qua `uv run`; nếu thích activate thủ công thì `source .venv/bin/activate`
+rồi gõ lệnh như bình thường.
+
+### Quản lý dependency
+
+```bash
+uv add <package>              # thêm dependency runtime
+uv add --dev <package>        # thêm dependency chỉ dùng khi dev/test
+uv remove <package>           # gỡ
+uv sync --no-dev              # chỉ runtime (dùng cho image production)
+uv lock --upgrade             # nâng phiên bản, cập nhật uv.lock
+```
+
+Dependency khai trong `pyproject.toml`; `uv.lock` chốt phiên bản chính xác cho
+cả cây phụ thuộc và **được commit vào repo** để mọi máy cài giống nhau.
 
 ### Frontend Setup
 

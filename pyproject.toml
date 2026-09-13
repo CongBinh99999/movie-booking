@@ -1,4 +1,47 @@
+[project]
+name = "movie-booking"
+version = "1.0.0"
+description = "Movie ticket booking API — FastAPI, SQLModel, PostgreSQL, Redis, VNPay"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Web
+    "fastapi==0.128.0",
+    "uvicorn==0.40.0",
+    "python-multipart==0.0.21",   # OAuth2PasswordRequestForm đọc form data
+
+    # Database
+    "sqlmodel==0.0.31",
+    "sqlalchemy==2.0.46",
+    "asyncpg==0.31.0",            # driver cho postgresql+asyncpg://
+    "greenlet==3.3.0",            # SQLAlchemy async cần
+    "alembic==1.20.0",
+
+    # Schemas / config
+    "pydantic==2.12.5",
+    "pydantic-settings==2.12.0",
+    "email-validator==2.3.0",     # pydantic EmailStr
+
+    # Auth
+    "python-jose==3.5.0",
+    "passlib==1.7.4",
+    "argon2-cffi==25.1.0",        # backend argon2 của passlib
+
+    # Cache / khoá ghế
+    "redis==7.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.2",
+    "pytest-asyncio==1.3.0",
+    "fakeredis==2.38.0",          # test không cần Redis server
+    "httpx==0.28.1",              # ASGI client cho smoke test
+]
+
 [tool.pytest.ini_options]
+# `uv run pytest` gọi thẳng script nên cwd không nằm trên sys.path như `python -m pytest`.
+pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]

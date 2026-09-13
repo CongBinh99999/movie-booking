@@ -1,8 +1,8 @@
 # Tests
 
 ```bash
-pytest                                    # chỉ unit test (20)
-TEST_DATABASE_URL=postgresql+asyncpg://user:pw@localhost:5432/mb_test pytest   # đủ 34
+uv run pytest                             # bỏ qua test tích hợp
+TEST_DATABASE_URL=postgresql+asyncpg://user:pw@localhost:5432/mb_test uv run pytest
 ```
 
 Không đặt `TEST_DATABASE_URL` thì test tích hợp tự skip — suite vẫn chạy được
