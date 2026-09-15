@@ -1,125 +1,159 @@
 "use client";
 
-import { useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { MovieCard } from "@/components/movies/MovieCard";
-import { useMovies, useGenres } from "@/hooks/useMovies";
+import { Film, Search, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useDeferredValue, useState } from "react";
+
+import { MovieGrid } from "@/components/movies/MovieCard";
+import { Button } from "@/components/ui/button";
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { useMovies } from "@/hooks/useMovies";
 import type { MovieFilters } from "@/services/movie.service";
 
 const STATUS_OPTIONS = [
-    { value: undefined, label: "Tất cả" },
+    { value: "all", label: "Tất cả" },
     { value: "now_showing", label: "Đang chiếu" },
     { value: "coming_soon", label: "Sắp chiếu" },
+    { value: "ended", label: "Đã kết thúc" },
 ] as const;
 
-export default function MoviesPage() {
-    const [search, setSearch] = useState("");
-    const [selectedStatus, setSelectedStatus] = useState<MovieFilters["status"]>(undefined);
-    const [selectedGenre, setSelectedGenre] = useState<string | undefined>(undefined);
+type StatusValue = (typeof STATUS_OPTIONS)[number]["value"];
+
+function MoviesBrowser() {
+    const searchParams = useSearchParams();
+    const [title, setTitle] = useState("");
+
+    // /movies?status=coming_soon (từ footer) quyết định giá trị ban đầu; khi
+    // người dùng tự chọn thì lựa chọn đó thắng. Suy trực tiếp, không cần effect
+    // đồng bộ — effect kiểu đó gây thêm một vòng render.
+    const fromUrl = searchParams.get("status");
+    const urlStatus: StatusValue = STATUS_OPTIONS.some((o) => o.value === fromUrl)
+        ? (fromUrl as StatusValue)
+        : "all";
+    const [picked, setPicked] = useState<StatusValue | null>(null);
+    const status = picked ?? urlStatus;
+    const setStatus = setPicked;
+
+    // Gõ tới đâu lọc tới đó, nhưng không chặn ô nhập khi danh sách đang render.
+    const deferredTitle = useDeferredValue(title);
 
     const filters: MovieFilters = {
-        status: selectedStatus,
-        // Backend nhận `title` + `skip`/`limit`, không phải `search`/`size`.
-        title: search || undefined,
-        limit: 20,
+        limit: 40,
+        ...(status !== "all" && { status }),
+        ...(deferredTitle.trim() && { title: deferredTitle.trim() }),
     };
 
-    const { data, isLoading } = useMovies(filters);
-    const { data: genres } = useGenres();
+    const { data, isLoading, isError } = useMovies(filters);
+    const movies = data?.items;
+    const hasFilter = status !== "all" || title.trim().length > 0;
 
     return (
-        <div className="pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Phim</h1>
-                <p className="text-[#8888aa]">Khám phá bộ sưu tập phim phong phú của chúng tôi</p>
-            </div>
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+            <h1 className="text-3xl sm:text-4xl">Phim</h1>
+            <p className="mt-1 text-muted-foreground">
+                {data ? `${data.total} phim` : "Đang tải danh sách phim"}
+            </p>
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                {/* Search */}
+            <div className="mt-6 mb-6 flex flex-col gap-2.5 sm:flex-row">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8888aa]" />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm phim..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm"
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        id="movie-search"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Tìm theo tên phim"
+                        className="pl-9"
+                        aria-label="Tìm theo tên phim"
                     />
+                    {title && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setTitle("")}
+                            className="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+                            aria-label="Xoá từ khoá"
+                        >
+                            <X className="size-3.5" />
+                        </Button>
+                    )}
                 </div>
 
-                {/* Status filter */}
-                <div className="flex items-center gap-2 glass-card rounded-xl p-1">
-                    <SlidersHorizontal className="w-4 h-4 text-[#8888aa] ml-3" />
-                    {STATUS_OPTIONS.map((opt) => (
-                        <button
-                            key={String(opt.value)}
-                            onClick={() => setSelectedStatus(opt.value)}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer ${selectedStatus === opt.value
-                                    ? "bg-[#e50914] text-white"
-                                    : "text-[#8888aa] hover:text-white hover:bg-white/5"
-                                }`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
+                <Select value={status} onValueChange={(v) => setStatus(v as StatusValue)}>
+                    <SelectTrigger className="sm:w-44" aria-label="Lọc theo trạng thái">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {STATUS_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
-            {/* Genre filter */}
-            {genres && genres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-8">
-                    <button
-                        onClick={() => setSelectedGenre(undefined)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${!selectedGenre ? "bg-[#e50914] text-white" : "glass-card text-[#8888aa] hover:text-white"
-                            }`}
-                    >
-                        Tất cả thể loại
-                    </button>
-                    {genres.map((genre) => (
-                        <button
-                            key={genre.id}
-                            onClick={() => setSelectedGenre(genre.id === selectedGenre ? undefined : genre.id)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${selectedGenre === genre.id
-                                    ? "bg-[#e50914] text-white"
-                                    : "glass-card text-[#8888aa] hover:text-white"
-                                }`}
+            {isError ? (
+                <Empty className="border">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <Film />
+                        </EmptyMedia>
+                        <EmptyTitle>Không tải được danh sách phim</EmptyTitle>
+                        <EmptyDescription>
+                            Kiểm tra kết nối rồi tải lại trang.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            ) : !isLoading && !movies?.length ? (
+                <Empty className="border">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <Film />
+                        </EmptyMedia>
+                        <EmptyTitle>Không có phim nào khớp</EmptyTitle>
+                        <EmptyDescription>
+                            {hasFilter
+                                ? "Thử bỏ bớt bộ lọc hoặc đổi từ khoá."
+                                : "Danh sách phim đang trống."}
+                        </EmptyDescription>
+                    </EmptyHeader>
+                    {hasFilter && (
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setStatus("all");
+                                setTitle("");
+                            }}
                         >
-                            {genre.name}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Movie grid */}
-            {isLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
-                            <div className="aspect-[2/3] bg-white/5" />
-                            <div className="p-4 space-y-2">
-                                <div className="h-4 bg-white/5 rounded" />
-                                <div className="h-3 bg-white/5 rounded w-2/3" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : data?.items && data.items.length > 0 ? (
-                <>
-                    <p className="text-sm text-[#8888aa] mb-4">Tìm thấy {data.total} phim</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {data.items.map((movie) => (
-                            <MovieCard key={movie.id} movie={movie} />
-                        ))}
-                    </div>
-                </>
+                            Xoá bộ lọc
+                        </Button>
+                    )}
+                </Empty>
             ) : (
-                <div className="text-center py-16">
-                    <div className="text-5xl mb-4">🎬</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Không tìm thấy phim</h3>
-                    <p className="text-[#8888aa] text-sm">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-                </div>
+                <MovieGrid movies={movies} isLoading={isLoading} skeletonCount={10} />
             )}
         </div>
+    );
+}
+
+export default function MoviesPage() {
+    return (
+        <Suspense fallback={null}>
+            <MoviesBrowser />
+        </Suspense>
     );
 }
