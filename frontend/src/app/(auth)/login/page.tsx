@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Film, Eye, EyeOff, Loader2 } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { FieldRow } from "@/components/ui/field-row";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/store/auth.store";
 
-const loginSchema = z.object({
-    username: z.string().min(3, "Username phải có ít nhất 3 ký tự"),
-    password: z.string().min(1, "Vui lòng nhập mật khẩu"),
+const schema = z.object({
+    username: z.string().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự"),
+    password: z.string().min(1, "Nhập mật khẩu"),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
     const router = useRouter();
@@ -27,106 +33,108 @@ export default function LoginPage() {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
-    });
+    } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-    const onSubmit = async (data: LoginFormData) => {
+    const onSubmit = async (data: FormData) => {
         setServerError("");
         try {
-            const tokenResponse = await authService.login({ username: data.username, password: data.password });
-            // Store token first so getMe can use it via interceptor
-            localStorage.setItem("access_token", tokenResponse.access_token);
-            const user = await authService.getMe();
-            setAuth(user, tokenResponse.access_token);
+            const tokens = await authService.login(data);
+            // Truyền token thẳng vào getMe: store chưa có token nên interceptor
+            // chưa gắn được header Authorization.
+            const user = await authService.getMe(tokens.access_token);
+            setAuth(user, tokens.access_token);
             router.push("/");
         } catch {
-            setServerError("Email hoặc mật khẩu không chính xác.");
+            setServerError("Tên đăng nhập hoặc mật khẩu không đúng.");
         }
     };
 
     return (
-        <div className="min-h-screen pt-16 flex items-center justify-center px-4">
-            <div className="w-full max-w-md animate-fade-in">
-                <div className="glass-card rounded-2xl p-8">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="inline-flex p-3 bg-[#e50914]/10 rounded-xl mb-4">
-                            <Film className="w-7 h-7 text-[#e50914]" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-white">Chào mừng trở lại!</h1>
-                        <p className="text-[#8888aa] mt-1 text-sm">Đăng nhập để tiếp tục đặt vé</p>
-                    </div>
+        <div className="flex flex-col gap-7">
+            {/* Tiêu đề nằm NGOÀI card, cỡ lớn — card chỉ chứa việc phải làm. */}
+            <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-4xl sm:text-[2.75rem]">Chào mừng trở lại</h1>
+                <p className="text-muted-foreground">Đăng nhập để tiếp tục đặt vé</p>
+            </div>
 
+            <div className="surface-soft p-6 sm:p-7">
+                <form
+                    onSubmit={handleSubmit(onSubmit)}
+                    className="flex flex-col gap-4"
+                    noValidate
+                >
                     {serverError && (
-                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg">
-                            {serverError}
-                        </div>
+                        <Alert variant="destructive">
+                            <AlertCircle />
+                            <AlertDescription>{serverError}</AlertDescription>
+                        </Alert>
                     )}
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                Username
-                            </label>
-                            <input
-                                id="username"
-                                type="text"
-                                autoComplete="username"
-                                placeholder="username"
-                                {...register("username")}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm"
+                    <FieldRow
+                        id="login-username"
+                        label="Tên đăng nhập"
+                        error={errors.username?.message}
+                    >
+                        <Input
+                            id="login-username"
+                            autoComplete="username"
+                            aria-invalid={!!errors.username}
+                            className="h-11"
+                            {...register("username")}
+                        />
+                    </FieldRow>
+
+                    <FieldRow
+                        id="login-password"
+                        label="Mật khẩu"
+                        error={errors.password?.message}
+                    >
+                        <div className="relative">
+                            <Input
+                                id="login-password"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
+                                aria-invalid={!!errors.password}
+                                className="h-11 pr-11"
+                                {...register("password")}
                             />
-                            {errors.username && (
-                                <p className="text-red-400 text-xs mt-1">{errors.username.message}</p>
-                            )}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2"
+                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="size-4" />
+                                ) : (
+                                    <Eye className="size-4" />
+                                )}
+                            </Button>
                         </div>
+                    </FieldRow>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                Mật khẩu
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    autoComplete="current-password"
-                                    placeholder="••••••••"
-                                    {...register("password")}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8888aa] hover:text-white transition-colors cursor-pointer"
-                                    aria-label="Toggle password visibility"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            {errors.password && (
-                                <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>
-                            )}
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-[#e50914] hover:bg-[#b20710] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 cursor-pointer"
-                        >
-                            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Đăng nhập
-                        </button>
-                    </form>
-
-                    <p className="text-center text-sm text-[#8888aa] mt-6">
-                        Chưa có tài khoản?{" "}
-                        <Link href="/register" className="text-[#e50914] hover:text-[#b20710] font-medium transition-colors">
-                            Đăng ký ngay
-                        </Link>
-                    </p>
-                </div>
+                    <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="mt-2 h-11 w-full text-[0.9375rem]"
+                    >
+                        {isSubmitting && <Spinner />}
+                        {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+                    </Button>
+                </form>
             </div>
+
+            <p className="text-center text-sm text-muted-foreground">
+                Chưa có tài khoản?
+                <Link
+                    href="/register"
+                    className="ml-1 font-medium text-brand underline-offset-4 hover:underline"
+                >
+                    Đăng ký
+                </Link>
+            </p>
         </div>
     );
 }

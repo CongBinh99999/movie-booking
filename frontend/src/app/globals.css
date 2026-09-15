@@ -293,24 +293,3 @@
   }
 }
 
-/* ── Tạm thời ──────────────────────────────────────────────────────────
-   Các trang chưa được viết lại vẫn dùng ba class này. Chúng sẽ bị xoá ở
-   PR cuối của đợt đổi giao diện, khi không còn chỗ nào tham chiếu.
-   ────────────────────────────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 40%, transparent); }
-  50% { box-shadow: 0 0 0 10px transparent; }
-}
-.glow-primary { animation: pulse-glow 2s infinite; }
-
-.glass-card {
-  background: color-mix(in oklab, var(--card) 70%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-}
