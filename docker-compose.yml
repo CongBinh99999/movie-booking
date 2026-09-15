@@ -1,0 +1,100 @@
+# Toàn bộ hệ thống: postgres + redis + backend + frontend.
+#
+#   cp .env.example .env       # điền VNPAY_TMN_CODE và VNPAY_HASH_SECRET
+#   docker compose up -d --build
+#   docker compose logs -f backend
+#   docker compose down        # tắt, giữ dữ liệu
+#   docker compose down -v     # tắt và xoá sạch dữ liệu
+#
+# Postgres map ra cổng 5433 vì máy dev thường đã chạy sẵn một bản ở 5432.
+# Giữa các container thì chúng gọi nhau qua tên service, không qua localhost.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: movie-booking-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-movie_booking}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-movie_booking}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: movie-booking-redis
+    ports:
+      - "6379:6379"
+    # appendonly: khoá ghế sống sót qua một lần restart container.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: movie-booking-backend
+    environment:
+      # Tên service, không phải localhost — localhost trong container là chính nó.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-movie_booking}
+      REDIS_URL: redis://redis:6379/0
+      APP_DEBUG: "false"
+      JWT_SECRET: ${JWT_SECRET:?thiếu JWT_SECRET trong .env}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      SEAT_LOCK_TTL: ${SEAT_LOCK_TTL:-900}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:?thiếu VNPAY_TMN_CODE trong .env}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:?thiếu VNPAY_HASH_SECRET trong .env}
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:3000/payment/result}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/movies', timeout=3).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Trình duyệt gọi API, không phải container — nên phải là địa chỉ nhìn
+        # từ máy người dùng, không phải tên service `backend`.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    container_name: movie-booking-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
