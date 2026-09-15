@@ -8,6 +8,10 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const nextConfig: NextConfig = {
+  // Gói sẵn server tối giản kèm đúng dependency cần thiết, để image production
+  // không phải mang theo toàn bộ node_modules.
+  output: "standalone",
+
   images: {
     // Cho phép tải ảnh từ mọi domain HTTPS (wildcard).
     remotePatterns: [
