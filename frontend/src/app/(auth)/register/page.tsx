@@ -1,38 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { z } from "zod";
-import { Film, Eye, EyeOff, Loader2 } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { FieldRow } from "@/components/ui/field-row";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { authService } from "@/services/auth.service";
 
-const registerSchema = z
+// Khớp đúng validator của RegisterRequest phía backend, để lỗi hiện ngay tại
+// form thay vì phải chờ một vòng 422.
+const schema = z
     .object({
-        full_name: z.string().min(2, "Tên phải có ít nhất 2 ký tự").optional().or(z.literal("")),
         username: z
             .string()
-            .min(3, "Username phải có ít nhất 3 ký tự")
-            .max(100, "Username tối đa 100 ký tự")
-            .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, "Username phải bắt đầu bằng chữ cái, chỉ chứa chữ, số và _"),
+            .min(3, "Ít nhất 3 ký tự")
+            .max(100, "Tối đa 100 ký tự")
+            .regex(
+                /^[a-zA-Z][a-zA-Z0-9_]*$/,
+                "Bắt đầu bằng chữ cái, chỉ gồm chữ, số và gạch dưới"
+            ),
         email: z.string().email("Email không hợp lệ"),
+        full_name: z
+            .string()
+            .min(5, "Ít nhất 5 ký tự")
+            .max(255, "Tối đa 255 ký tự")
+            .optional()
+            .or(z.literal("")),
         password: z
             .string()
-            .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
-            .regex(/[A-Z]/, "Phải chứa ít nhất một chữ hoa")
-            .regex(/[a-z]/, "Phải chứa ít nhất một chữ thường")
-            .regex(/[0-9]/, "Phải chứa ít nhất một số")
-            .regex(/[!@#$%^&*(),.?":{}|<>]/, "Phải chứa ít nhất một ký tự đặc biệt"),
-        confirmPassword: z.string(),
+            .min(8, "Ít nhất 8 ký tự")
+            .regex(/[A-Z]/, "Cần ít nhất một chữ hoa")
+            .regex(/[a-z]/, "Cần ít nhất một chữ thường")
+            .regex(/[0-9]/, "Cần ít nhất một chữ số")
+            .regex(/[!@#$%^&*(),.?":{}|<>]/, "Cần ít nhất một ký tự đặc biệt"),
+        confirmed_password: z.string(),
     })
-    .refine((data) => data.password === data.confirmPassword, {
-        message: "Mật khẩu xác nhận không khớp",
-        path: ["confirmPassword"],
+    .refine((data) => data.password === data.confirmed_password, {
+        message: "Mật khẩu nhập lại không khớp",
+        path: ["confirmed_password"],
     });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -43,123 +60,154 @@ export default function RegisterPage() {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
-    });
+    } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-    const onSubmit = async (data: RegisterFormData) => {
+    const onSubmit = async (data: FormData) => {
         setServerError("");
         try {
             await authService.register({
                 username: data.username,
                 email: data.email,
                 password: data.password,
-                confirmed_password: data.confirmPassword,
-                full_name: data.full_name || undefined,
+                confirmed_password: data.confirmed_password,
+                ...(data.full_name && { full_name: data.full_name }),
             });
-            router.push("/login?registered=true");
+            toast.success("Tạo tài khoản thành công", {
+                description: "Đăng nhập để bắt đầu đặt vé.",
+            });
+            router.push("/login");
         } catch {
-            setServerError("Email hoặc username đã được sử dụng, hoặc có lỗi xảy ra.");
+            setServerError("Email hoặc tên đăng nhập đã được dùng.");
         }
     };
 
-    const fields = [
-        { id: "full_name", label: "Họ và tên (tùy chọn)", type: "text", placeholder: "Nguyễn Văn A", autoComplete: "name" },
-        { id: "username", label: "Username", type: "text", placeholder: "nguyenvana", autoComplete: "username" },
-        { id: "email", label: "Email", type: "email", placeholder: "email@example.com", autoComplete: "email" },
-    ] as const;
-
     return (
-        <div className="min-h-screen pt-16 flex items-center justify-center px-4 py-8">
-            <div className="w-full max-w-md animate-fade-in">
-                <div className="glass-card rounded-2xl p-8">
-                    <div className="text-center mb-8">
-                        <div className="inline-flex p-3 bg-[#e50914]/10 rounded-xl mb-4">
-                            <Film className="w-7 h-7 text-[#e50914]" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-white">Tạo tài khoản</h1>
-                        <p className="text-[#8888aa] mt-1 text-sm">Tham gia CineBook để đặt vé dễ dàng</p>
-                    </div>
+        <div className="flex flex-col gap-7">
+            <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-4xl sm:text-[2.75rem]">Tạo tài khoản</h1>
+                <p className="text-muted-foreground">Đặt vé nhanh hơn ở những lần sau</p>
+            </div>
 
+            <div className="surface-soft p-6 sm:p-7">
+                <form
+                    onSubmit={handleSubmit(onSubmit)}
+                    className="flex flex-col gap-4"
+                    noValidate
+                >
                     {serverError && (
-                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg">
-                            {serverError}
-                        </div>
+                        <Alert variant="destructive">
+                            <AlertCircle />
+                            <AlertDescription>{serverError}</AlertDescription>
+                        </Alert>
                     )}
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        {fields.map((field) => (
-                            <div key={field.id}>
-                                <label htmlFor={field.id} className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                    {field.label}
-                                </label>
-                                <input
-                                    id={field.id}
-                                    type={field.type}
-                                    placeholder={field.placeholder}
-                                    autoComplete={field.autoComplete}
-                                    {...register(field.id)}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm"
-                                />
-                                {errors[field.id]?.message && (
-                                    <p className="text-red-400 text-xs mt-1">{errors[field.id]?.message}</p>
-                                )}
-                            </div>
-                        ))}
+                    <FieldRow
+                        id="reg-username"
+                        label="Tên đăng nhập"
+                        error={errors.username?.message}
+                    >
+                        <Input
+                            id="reg-username"
+                            autoComplete="username"
+                            aria-invalid={!!errors.username}
+                            className="h-11"
+                            {...register("username")}
+                        />
+                    </FieldRow>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                Mật khẩu
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    autoComplete="new-password"
-                                    {...register("password")}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm pr-10"
-                                />
-                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8888aa] hover:text-white transition-colors cursor-pointer" aria-label="Toggle password visibility">
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
-                        </div>
+                    <FieldRow id="reg-email" label="Email" error={errors.email?.message}>
+                        <Input
+                            id="reg-email"
+                            type="email"
+                            autoComplete="email"
+                            aria-invalid={!!errors.email}
+                            className="h-11"
+                            {...register("email")}
+                        />
+                    </FieldRow>
 
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#8888aa] mb-1.5">
-                                Xác nhận mật khẩu
-                            </label>
-                            <input
-                                id="confirmPassword"
-                                type="password"
-                                placeholder="••••••••"
+                    <FieldRow
+                        id="reg-fullname"
+                        label="Họ và tên"
+                        hint="Không bắt buộc"
+                        error={errors.full_name?.message}
+                    >
+                        <Input
+                            id="reg-fullname"
+                            autoComplete="name"
+                            aria-invalid={!!errors.full_name}
+                            className="h-11"
+                            {...register("full_name")}
+                        />
+                    </FieldRow>
+
+                    <FieldRow
+                        id="reg-password"
+                        label="Mật khẩu"
+                        hint="Tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt"
+                        error={errors.password?.message}
+                    >
+                        <div className="relative">
+                            <Input
+                                id="reg-password"
+                                type={showPassword ? "text" : "password"}
                                 autoComplete="new-password"
-                                {...register("confirmPassword")}
-                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-[#8888aa] focus:outline-none focus:border-[#e50914] transition-colors text-sm"
+                                aria-invalid={!!errors.password}
+                                className="h-11 pr-11"
+                                {...register("password")}
                             />
-                            {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowPassword((v) => !v)}
+                                className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2"
+                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="size-4" />
+                                ) : (
+                                    <Eye className="size-4" />
+                                )}
+                            </Button>
                         </div>
+                    </FieldRow>
 
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-[#e50914] hover:bg-[#b20710] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors duration-200 cursor-pointer"
-                        >
-                            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Đăng ký
-                        </button>
-                    </form>
+                    <FieldRow
+                        id="reg-confirm"
+                        label="Nhập lại mật khẩu"
+                        error={errors.confirmed_password?.message}
+                    >
+                        <Input
+                            id="reg-confirm"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            aria-invalid={!!errors.confirmed_password}
+                            className="h-11"
+                            {...register("confirmed_password")}
+                        />
+                    </FieldRow>
 
-                    <p className="text-center text-sm text-[#8888aa] mt-6">
-                        Đã có tài khoản?{" "}
-                        <Link href="/login" className="text-[#e50914] hover:text-[#b20710] font-medium transition-colors">
-                            Đăng nhập
-                        </Link>
-                    </p>
-                </div>
+                    <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="mt-2 h-11 w-full text-[0.9375rem]"
+                    >
+                        {isSubmitting && <Spinner />}
+                        {isSubmitting ? "Đang tạo tài khoản..." : "Đăng ký"}
+                    </Button>
+                </form>
             </div>
+
+            <p className="text-center text-sm text-muted-foreground">
+                Đã có tài khoản?
+                <Link
+                    href="/login"
+                    className="ml-1 font-medium text-brand underline-offset-4 hover:underline"
+                >
+                    Đăng nhập
+                </Link>
+            </p>
         </div>
     );
 }

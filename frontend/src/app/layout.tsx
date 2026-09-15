@@ -3,8 +3,7 @@ import { Be_Vietnam_Pro, Bricolage_Grotesque, JetBrains_Mono } from "next/font/g
 
 import "./globals.css";
 import { Providers } from "./providers";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import { cn } from "@/lib/utils";
 
 // subset "vietnamese" là bắt buộc: thiếu nó thì dấu tiếng Việt rơi về font
@@ -52,11 +51,7 @@ export default function RootLayout({
         <html lang="vi" suppressHydrationWarning>
             <body className={cn(sans.variable, display.variable, mono.variable, "min-h-dvh")}>
                 <Providers>
-                    <div className="flex min-h-dvh flex-col">
-                        <Navbar />
-                        <main className="flex-1">{children}</main>
-                        <Footer />
-                    </div>
+                    <SiteChrome>{children}</SiteChrome>
                 </Providers>
             </body>
         </html>
