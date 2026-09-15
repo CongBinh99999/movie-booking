@@ -1,7 +1,18 @@
 import hmac
 import hashlib
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+
+# VNPay quy định vnp_CreateDate và vnp_ExpireDate theo GMT+7, không phải UTC.
+# Gửi giờ UTC thì mốc lệch 7 tiếng: cổng coi giao dịch là của quá khứ.
+VN_TZ = timezone(timedelta(hours=7))
+
+
+def _vnp_time(value: datetime) -> str:
+    """Đổi sang giờ GMT+7, định dạng yyyyMMddHHmmss."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(VN_TZ).strftime("%Y%m%d%H%M%S")
 
 
 def _build_query_string(params: dict) -> str:
@@ -30,6 +41,8 @@ def generate_payment_url(
     order_info: str,
     return_url: str,
     ip_addr: str,
+    expire_at: datetime,
+    created_at: datetime | None = None,
     locale: str = "vn",
     currency_code: str = "VND",
     order_type: str = "other",
@@ -37,7 +50,11 @@ def generate_payment_url(
     """Build VNPay payment URL với chữ ký HMAC-SHA512.
 
     amount phải nhân 100 trước khi truyền vào (quy định VNPay).
+
+    expire_at nên lấy đúng hạn giữ ghế của booking: để VNPay hết hạn muộn hơn
+    thì khách trả tiền xong mà ghế đã bị thả cho người khác.
     """
+    created_at = created_at or datetime.now(timezone.utc)
     params: dict[str, str] = {
         "vnp_Version": "2.1.0",
         "vnp_Command": "pay",
@@ -50,7 +67,9 @@ def generate_payment_url(
         "vnp_Locale": locale,
         "vnp_ReturnUrl": return_url,
         "vnp_IpAddr": ip_addr,
-        "vnp_CreateDate": datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S"),
+        "vnp_CreateDate": _vnp_time(created_at),
+        # Bắt buộc ở 2.1.0. Thiếu nó cổng từ chối giao dịch.
+        "vnp_ExpireDate": _vnp_time(expire_at),
     }
 
     query_string = _build_query_string(params)

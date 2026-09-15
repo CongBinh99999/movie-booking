@@ -68,11 +68,14 @@ class PaymentService:
             tmn_code=self._settings.VNPAY_TMN_CODE,
             hash_secret=self._settings.VNPAY_HASH_SECRET,
             payment_url_base=self._settings.VNPAY_PAYMENT_URL,
-            txn_ref=str(payment.id),
+            # vnp_TxnRef chỉ nhận chữ và số — UUID có dấu gạch ngang thì
+            # không hợp lệ. Bỏ gạch vẫn parse ngược được bằng UUID().
+            txn_ref=payment.id.hex,
             amount=vnpay_amount,
             order_info=f"Thanh toan ve xem phim booking {booking_id}",
             return_url=self._settings.VNPAY_RETURN_URL,
             ip_addr=client_ip,
+            expire_at=booking.expires_at,
         )
 
         await self.payment_repo.update(payment, data=_url_update(payment_url))

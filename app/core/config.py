@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
@@ -24,7 +25,9 @@ class Setting(BaseSettings):
 
     SEAT_LOCK_TTL: int = 900
 
-    VNPAY_TMN_CODE: str
+    # VNPay cấp mã 8 ký tự. Đặt nhầm giá trị placeholder thì cổng trả
+    # "Không tìm thấy website" (code 72) — bắt ngay lúc khởi động dễ lần hơn.
+    VNPAY_TMN_CODE: str = Field(min_length=8, max_length=8)
     VNPAY_HASH_SECRET: str
     VNPAY_PAYMENT_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
     VNPAY_RETURN_URL: str = "http://localhost:3000/payment/result"
