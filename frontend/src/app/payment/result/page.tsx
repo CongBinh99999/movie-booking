@@ -1,20 +1,49 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Suspense, useEffect, useState, type ComponentType } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { paymentService } from "@/services/payment.service";
+import { cn } from "@/lib/utils";
 
 type State = "checking" | "success" | "failed" | "invalid";
+
+const VIEW: Record<
+    Exclude<State, "checking">,
+    { icon: ComponentType<{ className?: string }>; tone: string; title: string; body: string }
+> = {
+    success: {
+        icon: CheckCircle2,
+        tone: "text-success",
+        title: "Thanh toán thành công",
+        body: "Vé của bạn đã được xác nhận.",
+    },
+    failed: {
+        icon: XCircle,
+        tone: "text-destructive",
+        title: "Thanh toán không thành công",
+        body: "Giao dịch bị huỷ hoặc bị từ chối. Bạn có thể thử lại từ trang vé.",
+    },
+    invalid: {
+        icon: AlertTriangle,
+        tone: "text-warning",
+        title: "Không xác thực được giao dịch",
+        body: "Chữ ký không hợp lệ. Kiểm tra lại trạng thái trong mục vé của bạn.",
+    },
+};
 
 function PaymentResult() {
     const searchParams = useSearchParams();
     const [state, setState] = useState<State>("checking");
 
     useEffect(() => {
-        // VNPay redirect về đây kèm query string đã ký. Chữ ký phải được backend
-        // xác thực — không tin vnp_ResponseCode trên URL.
+        // Không tin vnp_ResponseCode trên URL — người dùng sửa được.
+        // Chỉ backend kiểm HMAC mới nói được giao dịch có thật hay không.
         const params = new URLSearchParams(searchParams.toString());
         paymentService
             .verifyVNPayReturn(params)
@@ -24,49 +53,38 @@ function PaymentResult() {
             .catch(() => setState("invalid"));
     }, [searchParams]);
 
-    const view = {
-        checking: {
-            icon: <Loader2 className="w-12 h-12 text-[#e50914] animate-spin" />,
-            title: "Đang xác thực giao dịch",
-            body: "Vui lòng không đóng trang này.",
-        },
-        success: {
-            icon: <CheckCircle2 className="w-12 h-12 text-green-400" />,
-            title: "Thanh toán thành công",
-            body: "Vé của bạn đã được xác nhận.",
-        },
-        failed: {
-            icon: <XCircle className="w-12 h-12 text-red-400" />,
-            title: "Thanh toán không thành công",
-            body: "Giao dịch bị hủy hoặc bị từ chối. Bạn có thể thử lại.",
-        },
-        invalid: {
-            icon: <AlertCircle className="w-12 h-12 text-yellow-400" />,
-            title: "Không xác thực được giao dịch",
-            body: "Chữ ký không hợp lệ. Vui lòng kiểm tra lại trong mục vé của bạn.",
-        },
-    }[state];
-
     return (
-        <div className="pt-16 pb-12 min-h-screen">
-            <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 animate-fade-in">
-                <div className="glass-card rounded-2xl p-8 flex flex-col items-center text-center gap-4">
-                    {view.icon}
-                    <h1 className="text-xl font-bold text-white">{view.title}</h1>
-                    <p className="text-[#8888aa] text-sm">{view.body}</p>
-
-                    {state !== "checking" && (
-                        <Link
-                            href="/bookings"
-                            className="mt-2 px-5 py-2.5 rounded-xl bg-[#e50914] text-white text-sm
-                                       font-medium hover:bg-[#c40812] transition-colors"
-                        >
-                            Xem vé của tôi
-                        </Link>
+        <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
+            <Card>
+                <CardContent className="flex flex-col items-center gap-4 text-center">
+                    {state === "checking" ? (
+                        <>
+                            <Spinner className="size-9 text-primary" />
+                            <h1 className="text-xl font-semibold">Đang xác thực giao dịch</h1>
+                            <p className="text-sm text-muted-foreground">
+                                Vui lòng không đóng trang này.
+                            </p>
+                        </>
+                    ) : (
+                        <Result state={state} />
                     )}
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
+    );
+}
+
+function Result({ state }: { state: Exclude<State, "checking"> }) {
+    const { icon: Icon, tone, title, body } = VIEW[state];
+    return (
+        <>
+            <Icon className={cn("size-11", tone)} />
+            <h1 className="text-xl font-semibold">{title}</h1>
+            <p className="text-sm text-muted-foreground">{body}</p>
+            <Button asChild className="mt-1">
+                <Link href="/bookings">Xem vé của tôi</Link>
+            </Button>
+        </>
     );
 }
 
