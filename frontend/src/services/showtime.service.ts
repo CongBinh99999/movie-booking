@@ -1,12 +1,13 @@
 import { apiClient } from "@/lib/api";
-import type { Showtime, Seat } from "@/types";
+import type { PaginatedResponse, SeatAvailability, Showtime } from "@/types";
 
 export const showtimeService = {
+    /** /showtimes trả ShowtimeListResponse có phân trang. */
     getShowtimesByMovie: async (movieId: string): Promise<Showtime[]> => {
-        const response = await apiClient.get<Showtime[]>(`/showtimes`, {
-            params: { movie_id: movieId },
+        const response = await apiClient.get<PaginatedResponse<Showtime>>("/showtimes", {
+            params: { movie_id: movieId, is_active: true, size: 100 },
         });
-        return response.data;
+        return response.data.items;
     },
 
     getShowtimeById: async (id: string): Promise<Showtime> => {
@@ -14,8 +15,14 @@ export const showtimeService = {
         return response.data;
     },
 
-    getAvailableSeats: async (showtimeId: string): Promise<Seat[]> => {
-        const response = await apiClient.get<Seat[]>(`/showtimes/${showtimeId}/seats`);
+    /**
+     * Trả cả object chứ không chỉ mảng ghế: base_price và available_count
+     * được tính sẵn ở backend, dùng luôn thay vì tính lại ở client.
+     */
+    getAvailableSeats: async (showtimeId: string): Promise<SeatAvailability> => {
+        const response = await apiClient.get<SeatAvailability>(
+            `/showtimes/${showtimeId}/seats`
+        );
         return response.data;
     },
 };

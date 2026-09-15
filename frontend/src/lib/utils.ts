@@ -1,12 +1,7 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+export { cn } from "cn";
+
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-
-/** Gộp class Tailwind, class sau thắng class trước khi trùng nhóm. */
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
 
 export function formatCurrency(amount: number): string {
     return new Intl.NumberFormat("vi-VN", {

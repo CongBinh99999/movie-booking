@@ -8,18 +8,20 @@ import { useAuthStore } from "@/store/auth.store";
 import { formatCurrency, formatDate, formatTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Loader2, Info } from "lucide-react";
-import type { Seat } from "@/types";
+import { seatLabel, toNumber, type Seat } from "@/types";
 
 const SEAT_TYPE_STYLES: Record<Seat["seat_type"], string> = {
     standard: "bg-white/10 hover:bg-blue-500/40 border-white/20",
     vip: "bg-yellow-900/20 hover:bg-yellow-500/40 border-yellow-500/30",
     couple: "bg-pink-900/20 hover:bg-pink-500/40 border-pink-500/30",
+    sweetbox: "bg-purple-900/20 hover:bg-purple-500/40 border-purple-500/30",
 };
 
 const SEAT_TYPE_LABELS: Record<Seat["seat_type"], string> = {
     standard: "Thường",
     vip: "VIP",
-    couple: "Couple",
+    couple: "Đôi",
+    sweetbox: "Sweetbox",
 };
 
 export default function BookingPage() {
@@ -30,7 +32,7 @@ export default function BookingPage() {
     const [errorMessage, setErrorMessage] = useState("");
 
     const { data: showtime, isLoading: isLoadingShowtime } = useShowtime(showtimeId);
-    const { data: seats, isLoading: isLoadingSeats } = useAvailableSeats(showtimeId);
+    const { data: availability, isLoading: isLoadingSeats } = useAvailableSeats(showtimeId);
     const createBooking = useCreateBooking();
 
     const toggleSeat = (seatId: string) => {
@@ -39,8 +41,10 @@ export default function BookingPage() {
         );
     };
 
+    // Endpoint trả object SeatAvailability; mảng ghế nằm ở .seats.
+    const seats = availability?.seats;
     const selectedSeats = seats?.filter((s) => selectedSeatIds.includes(s.id)) ?? [];
-    const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+    const totalPrice = selectedSeats.reduce((sum, seat) => sum + toNumber(seat.final_price), 0);
 
     const handleConfirmBooking = async () => {
         if (!isAuthenticated) {
@@ -65,8 +69,8 @@ export default function BookingPage() {
 
     // Group seats by row
     const seatsByRow = (seats ?? []).reduce<Record<string, Seat[]>>((acc, seat) => {
-        if (!acc[seat.row]) acc[seat.row] = [];
-        acc[seat.row].push(seat);
+        if (!acc[seat.row_label]) acc[seat.row_label] = [];
+        acc[seat.row_label].push(seat);
         return acc;
     }, {});
 
@@ -103,14 +107,14 @@ export default function BookingPage() {
                             <span className="text-xs text-[#8888aa] w-5 text-center font-semibold">{row}</span>
                             <div className="flex gap-1.5 flex-wrap">
                                 {rowSeats
-                                    .sort((a, b) => a.column - b.column)
+                                    .sort((a, b) => a.seat_number - b.seat_number)
                                     .map((seat) => {
                                         const isSelected = selectedSeatIds.includes(seat.id);
                                         return (
                                             <button
                                                 key={seat.id}
                                                 onClick={() => toggleSeat(seat.id)}
-                                                title={`${seat.seat_type} - ${formatCurrency(seat.price)}`}
+                                                title={`${seat.seat_type} - ${formatCurrency(toNumber(seat.final_price))}`}
                                                 className={cn(
                                                     "w-9 h-9 text-xs font-semibold rounded-lg border transition-all duration-150 cursor-pointer",
                                                     isSelected
@@ -118,7 +122,7 @@ export default function BookingPage() {
                                                         : SEAT_TYPE_STYLES[seat.seat_type]
                                                 )}
                                             >
-                                                {seat.column}
+                                                {seat.seat_number}
                                             </button>
                                         );
                                     })}
@@ -152,9 +156,9 @@ export default function BookingPage() {
                         {selectedSeats.map((seat) => (
                             <div key={seat.id} className="flex justify-between text-sm">
                                 <span className="text-[#8888aa]">
-                                    Ghế {seat.row}{seat.column} ({SEAT_TYPE_LABELS[seat.seat_type]})
+                                    Ghế {seatLabel(seat)} ({SEAT_TYPE_LABELS[seat.seat_type]})
                                 </span>
-                                <span className="text-white">{formatCurrency(seat.price)}</span>
+                                <span className="text-white">{formatCurrency(toNumber(seat.final_price))}</span>
                             </div>
                         ))}
                         <div className="border-t border-white/10 pt-2 flex justify-between font-semibold">

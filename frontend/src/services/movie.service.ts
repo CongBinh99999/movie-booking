@@ -1,12 +1,13 @@
 import { apiClient } from "@/lib/api";
-import type { Movie, Genre, PaginatedResponse } from "@/types";
+import type { Genre, Movie, PaginatedResponse } from "@/types";
 
+/** Backend nhận skip/limit, không phải page/size (xem MovieQueryParams). */
 export interface MovieFilters {
-    page?: number;
-    size?: number;
+    skip?: number;
+    limit?: number;
     status?: "coming_soon" | "now_showing" | "ended";
-    genre_id?: string;
-    search?: string;
+    title?: string;
+    is_active?: boolean;
 }
 
 export const movieService = {
@@ -22,16 +23,17 @@ export const movieService = {
         return response.data;
     },
 
+    /** /genres trả GenreListResponse có phân trang; ở đây chỉ cần danh sách. */
     getGenres: async (): Promise<Genre[]> => {
-        const response = await apiClient.get<Genre[]>("/genres");
-        return response.data;
+        const response = await apiClient.get<PaginatedResponse<Genre>>("/genres", {
+            params: { limit: 100 },
+        });
+        return response.data.items;
     },
 
-    getNowShowing: async (): Promise<PaginatedResponse<Movie>> => {
-        return movieService.getMovies({ status: "now_showing", size: 10 });
-    },
+    getNowShowing: async (limit = 12): Promise<PaginatedResponse<Movie>> =>
+        movieService.getMovies({ status: "now_showing", limit }),
 
-    getComingSoon: async (): Promise<PaginatedResponse<Movie>> => {
-        return movieService.getMovies({ status: "coming_soon", size: 10 });
-    },
+    getComingSoon: async (limit = 12): Promise<PaginatedResponse<Movie>> =>
+        movieService.getMovies({ status: "coming_soon", limit }),
 };
