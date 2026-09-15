@@ -19,8 +19,14 @@ export const authService = {
         return response.data;
     },
 
-    getMe: async (): Promise<User> => {
-        const response = await apiClient.get<User>("/auth/me");
+    /**
+     * `token` dùng ngay sau khi đăng nhập, lúc store chưa kịp có token và
+     * interceptor chưa gắn được header.
+     */
+    getMe: async (token?: string): Promise<User> => {
+        const response = await apiClient.get<User>("/auth/me", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         return response.data;
     },
 

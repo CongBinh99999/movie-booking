@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Star } from "lucide-react";
-import type { Movie } from "@/types";
+import { Clock } from "lucide-react";
+import { getMovieStatus, type Movie, type MovieStatus } from "@/types";
 
-const STATUS_LABELS: Record<Movie["status"], { label: string; color: string }> = {
+// MovieResponse không có trường `status`; suy ra từ is_active + release_date
+// + end_date (xem getMovieStatus). Cũng không kèm `genres` và `rating`.
+const STATUS_LABELS: Record<MovieStatus, { label: string; color: string }> = {
     now_showing: { label: "Đang chiếu", color: "bg-green-500" },
     coming_soon: { label: "Sắp chiếu", color: "bg-blue-500" },
     ended: { label: "Đã kết thúc", color: "bg-gray-500" },
@@ -14,7 +16,7 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
-    const statusInfo = STATUS_LABELS[movie.status] ?? { label: "Không rõ", color: "bg-gray-500" };
+    const statusInfo = STATUS_LABELS[getMovieStatus(movie)];
 
     return (
         <Link
@@ -43,13 +45,6 @@ export function MovieCard({ movie }: MovieCardProps) {
                         {statusInfo.label}
                     </span>
                 </div>
-                {/* Rating */}
-                {movie.rating && (
-                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span className="text-xs font-semibold text-white">{movie.rating.toFixed(1)}</span>
-                    </div>
-                )}
             </div>
 
             {/* Info */}
@@ -59,20 +54,8 @@ export function MovieCard({ movie }: MovieCardProps) {
                 </h3>
                 <div className="flex items-center gap-1 text-[#8888aa]">
                     <Clock className="w-3 h-3" />
-                    <span className="text-xs">{movie.duration} phút</span>
+                    <span className="text-xs">{movie.duration_minutes} phút</span>
                 </div>
-                {movie.genres?.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                        {movie.genres.slice(0, 2).map((genre) => (
-                            <span
-                                key={genre.id}
-                                className="text-xs px-2 py-0.5 bg-white/5 text-[#8888aa] rounded-full"
-                            >
-                                {genre.name}
-                            </span>
-                        ))}
-                    </div>
-                )}
             </div>
         </Link>
     );

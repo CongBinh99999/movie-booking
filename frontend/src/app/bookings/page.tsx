@@ -7,6 +7,7 @@ import { Ticket, Calendar, Loader2, AlertCircle } from "lucide-react";
 import { useMyBookings } from "@/hooks/useBookings";
 import { useAuthStore } from "@/store/auth.store";
 import { formatCurrency } from "@/lib/utils";
+import { toNumber } from "@/types";
 import type { BookingStatus } from "@/types";
 
 const STATUS_CONFIG: Record<BookingStatus, { label: string; color: string }> = {
@@ -107,7 +108,7 @@ export default function BookingsPage() {
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[#e50914] font-bold text-sm">
-                                                {formatCurrency(booking.total_amount)}
+                                                {formatCurrency(toNumber(booking.total_amount))}
                                             </div>
                                         </div>
                                     </div>

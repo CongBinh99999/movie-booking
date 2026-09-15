@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Clock, Star, Calendar, ChevronRight, Play } from "lucide-react";
+import { Clock, Calendar, ChevronRight, Play } from "lucide-react";
 import { useMovie } from "@/hooks/useMovies";
 import { useShowtimesByMovie } from "@/hooks/useShowtimes";
 import { formatDate, formatTime } from "@/lib/utils";
+import { toNumber } from "@/types";
 
 export default function MovieDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -77,25 +78,18 @@ export default function MovieDetailPage() {
 
                     {/* Info */}
                     <div className="flex-1 pt-8 md:pt-16">
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {movie.genres?.map((g) => (
-                                <span key={g.id} className="text-xs px-2.5 py-1 bg-[#e50914]/15 text-[#e50914] rounded-full font-medium">
-                                    {g.name}
-                                </span>
-                            ))}
-                        </div>
                         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3">{movie.title}</h1>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-[#8888aa] mb-5">
-                            {movie.rating && (
-                                <span className="flex items-center gap-1 text-yellow-400 font-semibold">
-                                    <Star className="w-4 h-4 fill-yellow-400" /> {movie.rating.toFixed(1)}/10
+                            {movie.age_rating && (
+                                <span className="px-1.5 py-0.5 border border-white/20 rounded text-xs font-medium">
+                                    {movie.age_rating}
                                 </span>
                             )}
                             <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" /> {movie.duration} phút
+                                <Clock className="w-4 h-4" /> {movie.duration_minutes} phút
                             </span>
                             <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" /> {formatDate(movie.release_date)}
+                                <Calendar className="w-4 h-4" /> {movie.release_date ? formatDate(movie.release_date) : "Chưa có lịch"}
                             </span>
                         </div>
                         <p className="text-[#8888aa] leading-relaxed mb-8 max-w-2xl">{movie.description}</p>
@@ -125,7 +119,7 @@ export default function MovieDetailPage() {
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-[#e50914] font-semibold text-sm">
-                                                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(showtime.price)}
+                                                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(toNumber(showtime.base_price))}
                                                 </span>
                                                 <ChevronRight className="w-4 h-4 text-[#8888aa] group-hover:text-white transition-colors" />
                                             </div>

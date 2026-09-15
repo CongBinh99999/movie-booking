@@ -8,6 +8,7 @@ import { useBooking } from "@/hooks/useBookings";
 import { useCreateVNPayPayment } from "@/hooks/usePayment";
 import { useAuthStore } from "@/store/auth.store";
 import { formatCurrency } from "@/lib/utils";
+import { toNumber } from "@/types";
 
 export default function PaymentPage({ params }: { params: Promise<{ bookingId: string }> }) {
     const { bookingId } = use(params);
@@ -76,7 +77,7 @@ export default function PaymentPage({ params }: { params: Promise<{ bookingId: s
                         <div className="flex items-center justify-between pt-4 border-t border-white/10">
                             <span className="text-[#8888aa] text-sm">Tổng tiền</span>
                             <span className="text-[#e50914] text-xl font-semibold">
-                                {formatCurrency(booking.total_amount)}
+                                {formatCurrency(toNumber(booking.total_amount))}
                             </span>
                         </div>
 

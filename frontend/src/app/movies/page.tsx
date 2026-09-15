@@ -19,9 +19,9 @@ export default function MoviesPage() {
 
     const filters: MovieFilters = {
         status: selectedStatus,
-        genre_id: selectedGenre,
-        search: search || undefined,
-        size: 20,
+        // Backend nhận `title` + `skip`/`limit`, không phải `search`/`size`.
+        title: search || undefined,
+        limit: 20,
     };
 
     const { data, isLoading } = useMovies(filters);
