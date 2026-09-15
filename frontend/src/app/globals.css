@@ -1,68 +1,316 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ──────────────────────────────────────────────────────────────────────
+   Rạp phim là phòng tối → tối là mặc định, sáng là tuỳ chọn.
+
+   Neutral có chroma thật (0.014–0.022) ở hue 40 (ngả ấm, cùng phía đỏ).
+   Bản trước dùng 0.004–0.012: mắt không phân biệt nổi, thành xám vô hồn.
+
+   Contrast đã đo bằng APCA, không ước lượng:
+     tối   foreground/background       Lc 99.8
+           muted-foreground/background Lc 60.1   (ngưỡng 60)
+           primary-fg/primary          Lc 73.5   (ngưỡng 60)
+           border-strong/background    Lc 30.0   (ngưỡng 30)
+           primary-text/background     Lc 45.5   (ngưỡng 45, chữ lớn)
+
+   Hai mức viền là chủ ý: Lc 30 dành cho ranh giới TƯƠNG TÁC (focus, input,
+   nút outline). Dùng nó cho mọi đường kẻ trang trí thì giao diện thành cái
+   lưới. --border là mức nhẹ, --border-strong mới đạt ngưỡng.
+
+   Đỏ tách làm hai vì một giá trị không gánh nổi cả hai vai:
+     --primary      nền nút, chữ trắng đè lên   (Lc 73.5)
+     --primary-text đỏ dùng LÀM CHỮ trên nền    (Lc 45.5)
+   Dùng --primary làm chữ trên nền tối chỉ đạt Lc 34.5 — đọc mỏi mắt.
+   ────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --color-primary: #e50914;
-  --color-primary-dark: #b20710;
-  --color-bg: #0a0a0f;
-  --color-surface: #141420;
-  --color-surface-2: #1e1e2e;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text: #f0f0f5;
-  --color-text-muted: #8888aa;
-  --font-inter: "Inter", sans-serif;
+  /* Bậc bo góc theo vai trò, không dùng một giá trị cho tất cả. */
+  --radius: 0.875rem;
+  --radius-seat: 0.25rem;
+  --radius-control: 0.5rem;
+  --radius-poster: 0.625rem;
+
+  --background: oklch(0.985 0.005 75);
+  --foreground: oklch(0.205 0.018 40);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0.018 40);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0.018 40);
+
+  --primary: oklch(0.522 0.2 25);
+  --primary-foreground: oklch(0.995 0.004 75);
+  --primary-text: oklch(0.478 0.19 25);
+
+  --secondary: oklch(0.958 0.009 40);
+  --secondary-foreground: oklch(0.265 0.018 40);
+
+  --muted: oklch(0.958 0.009 40);
+  --muted-foreground: oklch(0.495 0.022 40);
+
+  --accent: oklch(0.945 0.013 40);
+  --accent-foreground: oklch(0.265 0.018 40);
+
+  --destructive: oklch(0.545 0.212 18);
+  --destructive-foreground: oklch(0.995 0.004 75);
+
+  --success: oklch(0.518 0.125 152);
+  --warning: oklch(0.652 0.146 66);
+
+  --border: oklch(0.912 0.011 40);
+  --border-strong: oklch(0.813 0.012 40);
+  --input: oklch(0.878 0.012 40);
+  --ring: oklch(0.522 0.2 25);
+
+  /* Năm sắc riêng biệt, không phải năm bậc của một màu. */
+  --chart-1: oklch(0.522 0.2 25);
+  --chart-2: oklch(0.588 0.142 62);
+  --chart-3: oklch(0.545 0.108 168);
+  --chart-4: oklch(0.512 0.128 262);
+  --chart-5: oklch(0.578 0.155 322);
+
+  --sidebar: oklch(0.972 0.008 50);
+  --sidebar-foreground: oklch(0.205 0.018 40);
+  --sidebar-primary: oklch(0.522 0.2 25);
+  --sidebar-primary-foreground: oklch(0.995 0.004 75);
+  --sidebar-accent: oklch(0.945 0.013 40);
+  --sidebar-accent-foreground: oklch(0.265 0.018 40);
+  --sidebar-border: oklch(0.912 0.011 40);
+  --sidebar-ring: oklch(0.522 0.2 25);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+.dark {
+  --background: oklch(0.163 0.014 40);
+  --foreground: oklch(0.965 0.006 70);
+
+  --card: oklch(0.205 0.017 40);
+  --card-foreground: oklch(0.965 0.006 70);
+  --popover: oklch(0.225 0.018 40);
+  --popover-foreground: oklch(0.965 0.006 70);
+
+  --primary: oklch(0.58 0.205 25);
+  --primary-foreground: oklch(0.985 0.004 75);
+  --primary-text: oklch(0.688 0.15 25);
+
+  --secondary: oklch(0.258 0.018 40);
+  --secondary-foreground: oklch(0.965 0.006 70);
+
+  --muted: oklch(0.252 0.017 40);
+  --muted-foreground: oklch(0.764 0.018 40);
+
+  --accent: oklch(0.288 0.021 40);
+  --accent-foreground: oklch(0.965 0.006 70);
+
+  --destructive: oklch(0.655 0.19 18);
+  --destructive-foreground: oklch(0.163 0.014 40);
+
+  --success: oklch(0.722 0.138 158);
+  --warning: oklch(0.788 0.142 72);
+
+  --border: oklch(0.285 0.019 40);
+  --border-strong: oklch(0.569 0.02 40);
+  --input: oklch(0.315 0.021 40);
+  --ring: oklch(0.688 0.15 25);
+
+  --chart-1: oklch(0.688 0.15 25);
+  --chart-2: oklch(0.742 0.135 65);
+  --chart-3: oklch(0.715 0.11 168);
+  --chart-4: oklch(0.682 0.125 262);
+  --chart-5: oklch(0.722 0.145 322);
+
+  --sidebar: oklch(0.188 0.016 40);
+  --sidebar-foreground: oklch(0.965 0.006 70);
+  --sidebar-primary: oklch(0.58 0.205 25);
+  --sidebar-primary-foreground: oklch(0.985 0.004 75);
+  --sidebar-accent: oklch(0.288 0.021 40);
+  --sidebar-accent-foreground: oklch(0.965 0.006 70);
+  --sidebar-border: oklch(0.285 0.019 40);
+  --sidebar-ring: oklch(0.688 0.15 25);
 }
 
-html {
-  scroll-behavior: smooth;
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-seat: var(--radius-seat);
+  --radius-control: var(--radius-control);
+  --radius-poster: var(--radius-poster);
+  --radius-sm: calc(var(--radius) * 0.45);
+  --radius-md: calc(var(--radius) * 0.6);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.6);
 }
 
-body {
-  font-family: var(--font-inter);
-  background-color: var(--color-bg);
-  color: var(--color-text);
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tiêu đề dùng face display, siết tracking mạnh dần theo cỡ chữ — đây là
+     chỗ tạo tương phản biên tập mà bản trước không có. */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    @apply font-bold;
+    text-wrap: balance;
+  }
+  h1 { letter-spacing: -0.035em; line-height: 1.04; }
+  h2 { letter-spacing: -0.028em; line-height: 1.12; }
+  h3 { letter-spacing: -0.02em; line-height: 1.2; }
+
+  p { text-wrap: pretty; }
+
+  .tabular, table, time { font-variant-numeric: tabular-nums; }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+@layer utilities {
+  /* Khối nổi mềm: bo lớn, viền gần như vô hình, bóng lan rộng và nhạt.
+     Bóng mặc định của shadcn là một vệt xám đều dưới mọi card — dùng cái này
+     cho những khối THẬT SỰ nổi lên (form đăng nhập, tóm tắt đơn), không rải
+     khắp nơi. */
+  .surface-soft {
+    border-radius: 1.5rem;
+    border: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    box-shadow:
+      0 1px 2px color-mix(in oklab, var(--foreground) 4%, transparent),
+      0 12px 32px -12px color-mix(in oklab, var(--foreground) 12%, transparent),
+      0 40px 80px -32px color-mix(in oklab, var(--foreground) 18%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  :root:not(.dark) .surface-soft {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.04),
+      0 12px 32px -12px rgb(0 0 0 / 0.10),
+      0 40px 80px -32px rgb(0 0 0 / 0.14);
+  }
+
+  /* Nhãn nhỏ in hoa — eyebrow, tiêu đề nhóm. */
+  .label-caps {
+    @apply text-[0.6875rem] font-semibold uppercase text-muted-foreground;
+    letter-spacing: 0.11em;
+  }
+
+  /* Mã đơn, mã ghế: mono để không nhầm 0/O, 1/l. */
+  .code {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+
+  .font-display { font-family: var(--font-display); }
+
+  .text-success { color: var(--success); }
+  .text-warning { color: var(--warning); }
+  /* Đỏ dùng làm chữ — KHÔNG dùng text-primary trên nền, nó chỉ đạt Lc 34.5. */
+  .text-brand { color: var(--primary-text); }
+
+  /* Quầng sáng sau hero. Ánh đèn chiếu, không phải cái card nữa. */
+  .spotlight {
+    background:
+      radial-gradient(
+        60% 80% at 50% -10%,
+        color-mix(in oklab, var(--primary) 22%, transparent),
+        transparent 70%
+      );
+  }
+
+  /* Vệt sáng hắt từ poster xuống nội dung bên dưới. */
+  .backdrop-wash {
+    mask-image: linear-gradient(to bottom, black, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+  }
 }
-::-webkit-scrollbar-track {
-  background: var(--color-surface);
-}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
-  border-radius: 3px;
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* Animations */
+/* ── Tạm thời ──────────────────────────────────────────────────────────
+   Các trang chưa được viết lại vẫn dùng ba class này. Chúng sẽ bị xoá ở
+   PR cuối của đợt đổi giao diện, khi không còn chỗ nào tham chiếu.
+   ────────────────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(229, 9, 20, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 40%, transparent); }
+  50% { box-shadow: 0 0 0 10px transparent; }
 }
+.glow-primary { animation: pulse-glow 2s infinite; }
 
-.animate-fade-in {
-  animation: fadeIn 0.4s ease forwards;
-}
-
-.glow-primary {
-  animation: pulse-glow 2s infinite;
-}
-
-/* Glass card effect */
 .glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  border: 1px solid var(--border);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }

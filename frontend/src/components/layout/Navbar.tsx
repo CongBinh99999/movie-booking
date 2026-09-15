@@ -1,162 +1,180 @@
 "use client";
 
+import { Film, LogOut, Menu, Ticket, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Film, Menu, X, User, LogOut, Ticket } from "lucide-react";
-import { useAuthStore } from "@/store/auth.store";
-import { cn } from "@/lib/utils";
 
-const NAV_LINKS = [
-    { href: "/movies", label: "Phim" },
-    { href: "/cinemas", label: "Rạp" },
-];
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth.store";
+
+const NAV_LINKS = [{ href: "/movies", label: "Phim" }];
 
 export function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
     const { user, isAuthenticated, clearAuth } = useAuthStore();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [sheetOpen, setSheetOpen] = useState(false);
 
     const handleLogout = () => {
         clearAuth();
+        setSheetOpen(false);
         router.push("/");
     };
 
+    const initial = (user?.full_name || user?.username || "?").charAt(0).toUpperCase();
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/5">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <div className="p-1.5 bg-[#e50914] rounded-lg group-hover:bg-[#b20710] transition-colors duration-200">
-                            <Film className="w-5 h-5 text-white" />
+        <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+                <Link href="/" className="flex items-center gap-2">
+                    <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground">
+                        <Film className="size-4" />
+                    </span>
+                    <span className="text-base font-semibold tracking-tight">CineBook</span>
+                </Link>
+
+                <nav className="ml-2 hidden items-center gap-1 md:flex">
+                    {NAV_LINKS.map((link) => (
+                        <Button
+                            key={link.href}
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                                pathname.startsWith(link.href) && "bg-accent text-accent-foreground"
+                            )}
+                        >
+                            <Link href={link.href}>{link.label}</Link>
+                        </Button>
+                    ))}
+                </nav>
+
+                <div className="ml-auto flex items-center gap-1.5">
+                    <ThemeToggle />
+
+                    {isAuthenticated && user ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="gap-2 px-2">
+                                    <Avatar className="size-6">
+                                        <AvatarFallback className="bg-primary text-[11px] text-primary-foreground">
+                                            {initial}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="hidden max-w-28 truncate sm:inline">
+                                        {user.full_name || user.username}
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="truncate text-sm font-medium">
+                                        {user.full_name || user.username}
+                                    </div>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                        {user.email}
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/bookings" className="gap-2">
+                                        <Ticket className="size-4" /> Vé của tôi
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/profile" className="gap-2">
+                                        <UserIcon className="size-4" /> Hồ sơ
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                                    <LogOut className="size-4" /> Đăng xuất
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <div className="hidden items-center gap-1.5 sm:flex">
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href="/login">Đăng nhập</Link>
+                            </Button>
+                            <Button asChild size="sm">
+                                <Link href="/register">Đăng ký</Link>
+                            </Button>
                         </div>
-                        <span className="text-xl font-bold tracking-tight">CineBook</span>
-                    </Link>
+                    )}
 
-                    {/* Desktop Nav */}
-                    <div className="hidden md:flex items-center gap-1">
-                        {NAV_LINKS.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                                    pathname.startsWith(link.href)
-                                        ? "bg-white/10 text-white"
-                                        : "text-[#8888aa] hover:text-white hover:bg-white/5"
+                    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Mở menu">
+                                <Menu className="size-4" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-72">
+                            <SheetHeader>
+                                <SheetTitle>Menu</SheetTitle>
+                            </SheetHeader>
+                            <nav className="flex flex-col gap-1 px-4">
+                                {NAV_LINKS.map((link) => (
+                                    <Button
+                                        key={link.href}
+                                        asChild
+                                        variant="ghost"
+                                        className="justify-start"
+                                        onClick={() => setSheetOpen(false)}
+                                    >
+                                        <Link href={link.href}>{link.label}</Link>
+                                    </Button>
+                                ))}
+
+                                <Separator className="my-2" />
+
+                                {isAuthenticated ? (
+                                    <>
+                                        <Button asChild variant="ghost" className="justify-start" onClick={() => setSheetOpen(false)}>
+                                            <Link href="/bookings">Vé của tôi</Link>
+                                        </Button>
+                                        <Button asChild variant="ghost" className="justify-start" onClick={() => setSheetOpen(false)}>
+                                            <Link href="/profile">Hồ sơ</Link>
+                                        </Button>
+                                        <Button variant="ghost" className="justify-start" onClick={handleLogout}>
+                                            Đăng xuất
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button asChild variant="ghost" className="justify-start" onClick={() => setSheetOpen(false)}>
+                                            <Link href="/login">Đăng nhập</Link>
+                                        </Button>
+                                        <Button asChild className="justify-start" onClick={() => setSheetOpen(false)}>
+                                            <Link href="/register">Đăng ký</Link>
+                                        </Button>
+                                    </>
                                 )}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
-                    </div>
-
-                    {/* Right Actions */}
-                    <div className="hidden md:flex items-center gap-3">
-                        {isAuthenticated && user ? (
-                            <div className="relative">
-                                <button
-                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors duration-200 cursor-pointer"
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-[#e50914] flex items-center justify-center text-white text-sm font-semibold">
-                                        {(user.full_name || user.username).charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className="text-sm font-medium">{user.full_name || user.username}</span>
-                                </button>
-                                {isUserMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 glass-card rounded-xl shadow-2xl border border-white/10 py-1 animate-fade-in">
-                                        <Link
-                                            href="/profile"
-                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#8888aa] hover:text-white hover:bg-white/5 transition-colors"
-                                            onClick={() => setIsUserMenuOpen(false)}
-                                        >
-                                            <User className="w-4 h-4" /> Hồ sơ
-                                        </Link>
-                                        <Link
-                                            href="/bookings"
-                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#8888aa] hover:text-white hover:bg-white/5 transition-colors"
-                                            onClick={() => setIsUserMenuOpen(false)}
-                                        >
-                                            <Ticket className="w-4 h-4" /> Vé của tôi
-                                        </Link>
-                                        <hr className="my-1 border-white/10" />
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors cursor-pointer"
-                                        >
-                                            <LogOut className="w-4 h-4" /> Đăng xuất
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                <Link
-                                    href="/login"
-                                    className="px-4 py-2 text-sm font-medium text-[#8888aa] hover:text-white transition-colors duration-200"
-                                >
-                                    Đăng nhập
-                                </Link>
-                                <Link
-                                    href="/register"
-                                    className="px-4 py-2 text-sm font-medium bg-[#e50914] hover:bg-[#b20710] text-white rounded-lg transition-colors duration-200"
-                                >
-                                    Đăng ký
-                                </Link>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                        aria-label="Toggle menu"
-                    >
-                        {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </button>
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </div>
-
-            {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="md:hidden border-t border-white/5 glass-card animate-fade-in">
-                    <div className="px-4 py-3 space-y-1">
-                        {NAV_LINKS.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className="block px-3 py-2 rounded-lg text-sm text-[#8888aa] hover:text-white hover:bg-white/5 transition-colors"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
-                        <hr className="border-white/10 my-2" />
-                        {isAuthenticated ? (
-                            <button
-                                onClick={handleLogout}
-                                className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
-                            >
-                                Đăng xuất
-                            </button>
-                        ) : (
-                            <>
-                                <Link href="/login" className="block px-3 py-2 text-sm text-[#8888aa] hover:text-white hover:bg-white/5 rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                    Đăng nhập
-                                </Link>
-                                <Link href="/register" className="block px-3 py-2 text-sm text-white bg-[#e50914] hover:bg-[#b20710] rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                    Đăng ký
-                                </Link>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
-        </nav>
+        </header>
     );
 }

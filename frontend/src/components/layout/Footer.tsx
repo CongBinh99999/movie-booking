@@ -1,63 +1,64 @@
-import Link from "next/link";
 import { Film } from "lucide-react";
+import Link from "next/link";
+
+const COLUMNS = [
+    {
+        title: "Khám phá",
+        links: [
+            { href: "/movies", label: "Phim đang chiếu" },
+            { href: "/movies?status=coming_soon", label: "Phim sắp chiếu" },
+        ],
+    },
+    {
+        title: "Tài khoản",
+        links: [
+            { href: "/bookings", label: "Vé của tôi" },
+            { href: "/profile", label: "Hồ sơ" },
+            { href: "/login", label: "Đăng nhập" },
+        ],
+    },
+];
 
 export function Footer() {
     return (
-        <footer className="border-t border-white/5 bg-[#0a0a0f] mt-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    {/* Brand */}
-                    <div className="col-span-1 md:col-span-2">
-                        <Link href="/" className="flex items-center gap-2 mb-3">
-                            <div className="p-1.5 bg-[#e50914] rounded-lg">
-                                <Film className="w-5 h-5 text-white" />
-                            </div>
-                            <span className="text-xl font-bold">CineBook</span>
-                        </Link>
-                        <p className="text-sm text-[#8888aa] leading-relaxed max-w-sm">
-                            Nền tảng đặt vé xem phim trực tuyến hàng đầu Việt Nam. Trải nghiệm
-                            xem phim tuyệt vời với dịch vụ đặt vé nhanh chóng và tiện lợi.
-                        </p>
-                    </div>
-                    {/* Links */}
-                    <div>
-                        <h4 className="text-sm font-semibold text-white mb-3">Khám phá</h4>
-                        <ul className="space-y-2">
-                            {[
-                                { href: "/movies", label: "Phim đang chiếu" },
-                                { href: "/movies?status=coming_soon", label: "Phim sắp chiếu" },
-                                { href: "/cinemas", label: "Hệ thống rạp" },
-                            ].map((item) => (
-                                <li key={item.href}>
-                                    <Link href={item.href} className="text-sm text-[#8888aa] hover:text-white transition-colors">
-                                        {item.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-white mb-3">Tài khoản</h4>
-                        <ul className="space-y-2">
-                            {[
-                                { href: "/login", label: "Đăng nhập" },
-                                { href: "/register", label: "Đăng ký" },
-                                { href: "/bookings", label: "Vé của tôi" },
-                            ].map((item) => (
-                                <li key={item.href}>
-                                    <Link href={item.href} className="text-sm text-[#8888aa] hover:text-white transition-colors">
-                                        {item.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-                <div className="mt-8 pt-6 border-t border-white/5 text-center">
-                    <p className="text-xs text-[#8888aa]">
-                        © {new Date().getFullYear()} CineBook. All rights reserved.
+        <footer className="mt-16 border-t">
+            <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:px-8 md:grid-cols-[1.6fr_1fr_1fr]">
+                <div>
+                    <Link href="/" className="mb-3 inline-flex items-center gap-2">
+                        <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground">
+                            <Film className="size-4" />
+                        </span>
+                        <span className="text-base font-semibold tracking-tight">CineBook</span>
+                    </Link>
+                    <p className="max-w-sm text-sm text-muted-foreground">
+                        Đặt vé xem phim trực tuyến. Chọn phim, chọn ghế, thanh toán — xong trong
+                        vài bước.
                     </p>
                 </div>
+
+                {COLUMNS.map((column) => (
+                    <div key={column.title}>
+                        <h2 className="mb-3 text-sm font-semibold">{column.title}</h2>
+                        <ul className="flex flex-col gap-2">
+                            {column.links.map((link) => (
+                                <li key={link.href}>
+                                    <Link
+                                        href={link.href}
+                                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+
+            <div className="border-t">
+                <p className="mx-auto max-w-7xl px-4 py-5 text-xs text-muted-foreground sm:px-6">
+                    © {new Date().getFullYear()} CineBook
+                </p>
             </div>
         </footer>
     );
