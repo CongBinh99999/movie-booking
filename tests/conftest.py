@@ -12,7 +12,7 @@ import sys
 import pytest
 
 os.environ.setdefault("JWT_SECRET", "test-secret")
-os.environ.setdefault("VNPAY_TMN_CODE", "test")
+os.environ.setdefault("VNPAY_TMN_CODE", "TESTCODE")  # VNPay cấp mã đúng 8 ký tự
 os.environ.setdefault("VNPAY_HASH_SECRET", "test")
 os.environ.setdefault("APP_DEBUG", "false")
 

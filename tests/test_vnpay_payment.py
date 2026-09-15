@@ -33,6 +33,7 @@ def test_verify_chu_ky_khop_voi_url_da_sinh():
         txn_ref=str(uuid4()), amount=1000000,
         order_info="Thanh toan ve xem phim booking abc",
         return_url="http://localhost:3000/payment/result", ip_addr="127.0.0.1",
+        expire_at=datetime.now(timezone.utc) + timedelta(minutes=15),
     )
     params = dict(parse_qsl(urlparse(url).query))
     assert vnpay_utils.verify_secure_hash(params, SECRET)
@@ -164,3 +165,67 @@ async def test_khong_tao_duoc_link_thanh_toan_cho_booking_het_han():
         await service.create_vnpay_payment(
             booking_id=booking.id, user_id=booking.user_id, client_ip="127.0.0.1"
         )
+
+
+# --- tham số request theo spec 2.1.0 ---
+
+def _pay_url(**overrides):
+    from datetime import datetime, timedelta, timezone
+    base = dict(
+        tmn_code="ABCD1234", hash_secret=SECRET,
+        payment_url_base="https://sandbox.vnpayment.vn/pay",
+        txn_ref=uuid4().hex, amount=18000000,
+        order_info="Thanh toan ve xem phim booking abc",
+        return_url="http://localhost:3000/payment/result", ip_addr="127.0.0.1",
+        created_at=datetime(2026, 9, 13, 12, 30, 25, tzinfo=timezone.utc),
+        expire_at=datetime(2026, 9, 13, 12, 30, 25, tzinfo=timezone.utc) + timedelta(minutes=15),
+    )
+    base.update(overrides)
+    return vnpay_utils.generate_payment_url(**base)
+
+
+def _params(url):
+    from urllib.parse import parse_qsl, urlparse
+    return dict(parse_qsl(urlparse(url).query))
+
+
+def test_thoi_gian_theo_gmt7_khong_phai_utc():
+    """12:30:25 UTC phải gửi đi là 19:30:25 giờ Việt Nam."""
+    p = _params(_pay_url())
+    assert p["vnp_CreateDate"] == "20260913193025"
+    assert p["vnp_ExpireDate"] == "20260913194525"
+
+
+def test_co_vnp_expiredate():
+    """Bắt buộc ở 2.1.0; thiếu nó cổng từ chối giao dịch."""
+    assert "vnp_ExpireDate" in _params(_pay_url())
+
+
+def test_txn_ref_chi_gom_chu_va_so():
+    """UUID có dấu gạch ngang thì vi phạm spec vnp_TxnRef."""
+    txn = _params(_pay_url())["vnp_TxnRef"]
+    assert txn.isalnum(), txn
+    assert len(txn) <= 100
+    # vẫn parse ngược được về UUID để tra cứu payment
+    from uuid import UUID
+    assert UUID(txn)
+
+
+def test_chu_ky_van_dung_sau_khi_them_expiredate():
+    assert vnpay_utils.verify_secure_hash(_params(_pay_url()), SECRET)
+
+
+def test_ma_tmn_code_sai_do_dai_bi_chan_tu_config():
+    """`dev` dài 3 ký tự — VNPay cấp mã 8 ký tự, sai là ra code 72."""
+    import os
+    import pydantic
+    from app.core.config import Setting
+
+    env = {k: v for k, v in os.environ.items()}
+    try:
+        os.environ["VNPAY_TMN_CODE"] = "dev"
+        with pytest.raises(pydantic.ValidationError):
+            Setting()
+    finally:
+        os.environ.clear()
+        os.environ.update(env)
